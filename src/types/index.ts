@@ -49,4 +49,7 @@ export interface User {
   role: 'user' | 'admin';
   name?: string;
   password?: string; // **INSECURE**: Only for local storage demo. Do NOT store plain text passwords in real applications.
+  inviteCodeUsed?: string; // Store the code used for registration
+  lastLogin?: string; // ISO timestamp of last login
+  lastWatchedVideoId?: string | null; // ID of the last video watched
 }

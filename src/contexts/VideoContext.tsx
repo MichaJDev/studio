@@ -2,7 +2,7 @@
 "use client";
 
 import type { Video } from '@/types';
-import React, { createContext, useContext, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo, useCallback } from 'react';
 import useLocalStorage from '@/hooks/use-local-storage';
 import { scanMediaFiles } from '@/lib/media-scanner'; // Import the scanner
 
@@ -13,6 +13,7 @@ interface VideoContextType {
   getRecentVideos: (count: number) => Video[];
   getEpisodesForShowAndSeason: (showName: string, seasonNumber: number) => Video[];
   getSeasonsForShow: (showName: string) => number[];
+  rescanMedia: () => number; // Function to trigger a rescan, returns number of items found
 }
 
 const VideoContext = createContext<VideoContextType | undefined>(undefined);
@@ -59,15 +60,25 @@ export function VideoProvider({ children }: { children: ReactNode }) {
     return Array.from(seasons).sort((a, b) => a - b); // Sort seasons numerically
   };
 
+  // Function to trigger a rescan
+  const rescanMedia = useCallback(() => {
+    console.log("Rescanning media files...");
+    const scannedVideos = scanMediaFiles(); // Call the scanner function again
+    setVideos(scannedVideos); // Update the state with the new scan results
+    console.log(`Rescan complete. Found ${scannedVideos.length} items.`);
+    return scannedVideos.length; // Return the count of found items
+  }, [setVideos]);
 
-  const contextValue = useMemo(() => ({ 
-    videos, 
-    addVideo, 
-    getVideoById, 
+
+  const contextValue = useMemo(() => ({
+    videos,
+    addVideo,
+    getVideoById,
     getRecentVideos,
     getEpisodesForShowAndSeason,
-    getSeasonsForShow 
-  }), [videos]);
+    getSeasonsForShow,
+    rescanMedia // Expose the rescan function
+  }), [videos, rescanMedia]); // Add rescanMedia to dependencies
 
   return (
     <VideoContext.Provider value={contextValue}>

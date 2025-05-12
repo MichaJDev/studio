@@ -17,10 +17,12 @@ const VALID_INVITE_CODES = ['STREAMVERSE_INVITE', 'ADMIN_CODE_XYZ']; // Add more
 
 interface AuthContextType {
   currentUser: User | null;
+  users: User[]; // Expose the list of users
   isLoading: boolean;
   login: (email_provided: string, password_provided: string) => Promise<boolean>;
   logout: () => void;
   register: (name: string, email_provided: string, password_provided: string, inviteCode: string) => Promise<{ success: boolean; error?: string }>;
+  updateUser: (userId: string, updatedFields: Partial<User>) => void; // Function to update user details
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,8 +31,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useLocalStorage<User[]>('streamverse-users', [
      // Add initial demo users here if needed, or rely solely on registration
-     { id: 'admin-123', email: ADMIN_EMAIL, role: 'admin', name: 'Admin User', password: ADMIN_PASSWORD }, // Storing passwords like this is INSECURE for real apps
-     { id: 'user-456', email: USER_EMAIL, role: 'user', name: 'Regular User', password: USER_PASSWORD }, // Storing passwords like this is INSECURE for real apps
+     { id: 'admin-123', email: ADMIN_EMAIL, role: 'admin', name: 'Admin User', password: ADMIN_PASSWORD, inviteCodeUsed: 'ADMIN_CODE_XYZ', lastLogin: new Date(Date.now() - 86400000).toISOString(), lastWatchedVideoId: null }, // Storing passwords like this is INSECURE for real apps
+     { id: 'user-456', email: USER_EMAIL, role: 'user', name: 'Regular User', password: USER_PASSWORD, inviteCodeUsed: 'STREAMVERSE_INVITE', lastLogin: new Date(Date.now() - 86400000 * 2).toISOString(), lastWatchedVideoId: 'movie-sim-1' }, // Storing passwords like this is INSECURE for real apps
   ]);
   const [currentUser, setCurrentUser] = useLocalStorage<User | null>('streamverse-current-user', null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +52,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
        }
     }
     setIsLoading(false);
-  }, [users]); // Rerun effect if users list changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   const readCurrentUserFromStorage = (): User | null => {
     if (typeof window === 'undefined') {
@@ -70,15 +73,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
 
-    const user = users.find(u => u.email === email_provided && u.password === password_provided); // INSECURE password check
+    const userIndex = users.findIndex(u => u.email === email_provided && u.password === password_provided); // INSECURE password check
 
-    setCurrentUser(user || null);
-    setIsLoading(false);
-    if (user) {
+    if (userIndex !== -1) {
+      const userToLogin = { ...users[userIndex], lastLogin: new Date().toISOString() };
+      // Update the user in the main list
+      const updatedUsers = [...users];
+      updatedUsers[userIndex] = userToLogin;
+      setUsers(updatedUsers);
+      // Set the current user
+      setCurrentUser(userToLogin);
+      setIsLoading(false);
       router.push('/'); // Redirect to home after successful login
       return true;
+    } else {
+      setCurrentUser(null);
+      setIsLoading(false);
+      return false;
     }
-    return false;
   };
 
   const register = async (name: string, email_provided: string, password_provided: string, inviteCode: string): Promise<{ success: boolean; error?: string }> => {
@@ -104,6 +116,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password: password_provided, // INSECURE - Store hashed passwords in a real app
         role: 'user', // Default role
         name: name,
+        inviteCodeUsed: inviteCode, // Store the invite code used
+        lastLogin: undefined, // No login yet
+        lastWatchedVideoId: null,
     };
 
     // 4. Add user to the list
@@ -116,13 +131,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true };
   };
 
+  const updateUser = (userId: string, updatedFields: Partial<User>) => {
+    setUsers(prevUsers => {
+        const userIndex = prevUsers.findIndex(u => u.id === userId);
+        if (userIndex === -1) return prevUsers; // User not found
+
+        const updatedUsers = [...prevUsers];
+        const updatedUser = { ...updatedUsers[userIndex], ...updatedFields };
+        updatedUsers[userIndex] = updatedUser;
+
+        // Also update currentUser if the modified user is the one logged in
+        if (currentUser && currentUser.id === userId) {
+            setCurrentUser(updatedUser);
+        }
+
+        return updatedUsers;
+    });
+  };
+
 
   const logout = () => {
     setCurrentUser(null);
     router.push('/login'); // Redirect to login after logout
   };
 
-  const contextValue = useMemo(() => ({ currentUser, isLoading, login, logout, register }), [currentUser, isLoading, users]); // Add users dependency
+  // Memoize context value including the new users array and updateUser function
+  const contextValue = useMemo(() => ({
+      currentUser,
+      users, // Expose users
+      isLoading,
+      login,
+      logout,
+      register,
+      updateUser // Expose updater
+  }), [currentUser, users, isLoading]); // Add users dependency
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -2,9 +2,10 @@
 // src/app/watch/[videoId]/page.tsx
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
-import { useParams } from 'next/navigation'; // Import useParams
+import React, { useEffect, useState, useMemo } from 'react'; // Import React for use()
+import { useParams } from 'next/navigation';
 import { useVideoContext } from '@/contexts/VideoContext';
+import { useAuthContext } from '@/contexts/AuthContext'; // Import AuthContext
 import VideoPlayer from '@/components/video/VideoPlayer';
 import type { Video } from '@/types';
 import { ChevronLeft } from 'lucide-react';
@@ -14,10 +15,11 @@ import { Loader2 } from 'lucide-react';
 
 // Removed the params prop from the component definition
 export default function WatchPage() {
-  const params = useParams<{ videoId: string }>(); // Use useParams hook
+  const params = React.use(useParams<{ videoId: string }>()); // Use React.use() for params
   const videoId = params?.videoId; // Extract videoId
 
   const { getVideoById } = useVideoContext();
+  const { currentUser, updateUser } = useAuthContext(); // Get user and updater from AuthContext
   const [video, setVideo] = useState<Video | null | undefined>(undefined);
 
   // Memoize the video lookup based on videoId
@@ -29,11 +31,18 @@ export default function WatchPage() {
   useEffect(() => {
     // Simulate loading delay or async fetch
     const timer = setTimeout(() => {
-      setVideo(fetchedVideo !== undefined ? fetchedVideo : null);
+      const foundVideo = fetchedVideo !== undefined ? fetchedVideo : null;
+      setVideo(foundVideo);
+
+      // Update lastWatchedVideoId when video is loaded and user is logged in
+      if (foundVideo && currentUser) {
+        updateUser(currentUser.id, { lastWatchedVideoId: foundVideo.id });
+      }
     }, 100); // Short delay to simulate loading
 
     return () => clearTimeout(timer);
-  }, [fetchedVideo]); // Depend on the memoized fetchedVideo
+    // Include currentUser and updateUser in dependencies
+  }, [fetchedVideo, currentUser, updateUser]);
 
   if (video === undefined) {
     return (
