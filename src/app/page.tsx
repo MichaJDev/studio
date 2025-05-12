@@ -1,7 +1,7 @@
 // src/app/page.tsx
 "use client";
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import VideoCard from '@/components/video/VideoCard';
 import FeaturedVideoCarouselItem from '@/components/video/FeaturedVideoCarouselItem';
 import VideoDetailsModal from '@/components/video/VideoDetailsModal'; // Import the modal
@@ -22,10 +22,29 @@ export default function HomePage() {
   const { videos, getRecentVideos } = useVideoContext();
   const [selectedVideoForModal, setSelectedVideoForModal] = useState<Video | null>(null);
 
-  const recentVideos = getRecentVideos(5); 
+  const recentVideos = getRecentVideos(5);
 
   const movies = videos.filter(v => v.type === 'movie' || (v.type === 'upload' && !v.season));
-  const shows = videos.filter(v => v.type === 'show' || (v.type === 'upload' && v.season));
+
+  // Group shows by showName and pick one representative video (e.g., S01E01 or first encountered)
+  const uniqueShows = useMemo(() => {
+    const showsMap = new Map<string, Video>();
+    videos
+      .filter(v => v.type === 'show' && v.showName)
+      .sort((a, b) => {
+        // Prioritize lower seasons/episodes as the representative
+        const seasonDiff = (a.season ?? 999) - (b.season ?? 999);
+        if (seasonDiff !== 0) return seasonDiff;
+        return (a.episode ?? 999) - (b.episode ?? 999);
+      })
+      .forEach(video => {
+        if (video.showName && !showsMap.has(video.showName)) {
+          showsMap.set(video.showName, video);
+        }
+      });
+    return Array.from(showsMap.values());
+  }, [videos]);
+
 
   const handleOpenModal = (video: Video) => {
     setSelectedVideoForModal(video);
@@ -80,14 +99,15 @@ export default function HomePage() {
         </section>
       )}
 
-       {shows.length > 0 && (
+       {uniqueShows.length > 0 && (
         <section>
           <h2 className="text-2xl font-bold tracking-tight mb-4 text-foreground flex items-center">
             <Tv className="mr-3 h-6 w-6 text-primary" /> TV Shows
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-            {shows.map((video) => (
-              <VideoCard key={video.id} video={video} onCardClick={handleOpenModal} />
+            {/* Map over uniqueShows instead of all show episodes */}
+            {uniqueShows.map((show) => (
+              <VideoCard key={show.showName} video={show} onCardClick={handleOpenModal} />
             ))}
           </div>
         </section>
@@ -107,7 +127,7 @@ export default function HomePage() {
             </Button>
           </div>
         )}
-      
+
       {selectedVideoForModal && (
         <VideoDetailsModal
           video={selectedVideoForModal}
