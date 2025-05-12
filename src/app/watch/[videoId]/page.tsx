@@ -8,7 +8,7 @@ import type { Video } from '@/types';
 import { ArrowLeft, Clock, CalendarDays } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { AspectRatio } from "@/components/ui/aspect-ratio"
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 
 interface WatchPageProps {
