@@ -49,7 +49,16 @@ export interface User {
   role: 'user' | 'admin';
   name?: string;
   password?: string; // **INSECURE**: Only for local storage demo. Do NOT store plain text passwords in real applications.
-  inviteCodeUsed?: string; // Store the code used for registration
+  inviteCodeUsed?: string; // Store the actual invite code string used for registration
   lastLogin?: string; // ISO timestamp of last login
   lastWatchedVideoId?: string | null; // ID of the last video watched
+}
+
+export interface InviteCodeConfig {
+  code: string;
+  description: string;
+  maxUses: number; // 0 means infinite uses
+  currentUses: number;
+  createdAt: string; // ISO string for when the code was created
+  isEnabled: boolean; // To manually enable/disable codes without deleting
 }

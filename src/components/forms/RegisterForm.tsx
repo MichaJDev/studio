@@ -55,6 +55,11 @@ export default function RegisterForm() {
         setTimeout(() => router.push('/login'), 1500);
       } else {
         setError(result.error || "Registration failed. Please try again.");
+         toast({ // Show toast for specific registration errors
+          variant: "destructive",
+          title: "Registration Failed",
+          description: result.error || "Please check your details and try again.",
+        });
       }
     } catch (err: any) {
       const errorMessage = err.message || "An unexpected error occurred during registration.";
@@ -77,15 +82,11 @@ export default function RegisterForm() {
         </CardTitle>
         <CardDescription>
           Register for StreamVerse using your invite code.
-          <br/>
-           <span className="text-xs text-muted-foreground">
-            (Demo invite code: STREAMVERSE_INVITE)
-          </span>
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
-          {error && (
+          {error && !isSuccess && ( // Only show main error if not success (toast shows success)
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Registration Error</AlertTitle>
@@ -157,7 +158,7 @@ export default function RegisterForm() {
                   type="text"
                   placeholder="Enter your invite code"
                   value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value)}
+                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())} // Standardize to uppercase
                   required
                   disabled={isLoading || isSuccess}
                 />
