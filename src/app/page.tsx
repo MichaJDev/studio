@@ -2,6 +2,7 @@
 "use client";
 
 import VideoCard from '@/components/video/VideoCard';
+import FeaturedVideoCarouselItem from '@/components/video/FeaturedVideoCarouselItem'; // Import the new component
 import { useVideoContext } from '@/contexts/VideoContext';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -12,7 +13,7 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from "@/components/ui/carousel"; // Import Carousel
+} from "@/components/ui/carousel";
 
 export default function HomePage() {
   const { videos, getRecentVideos } = useVideoContext();
@@ -22,35 +23,33 @@ export default function HomePage() {
   const shows = videos.filter(v => v.type === 'show' || (v.type === 'upload' && v.season)); // Treat uploads with season as shows
 
   return (
-    <div className="space-y-12"> {/* Increased spacing */}
+    <div className="space-y-12">
 
-      {/* Recently Added Carousel */}
+      {/* Recently Added Carousel - Updated */}
       {recentVideos.length > 0 && (
-        <section>
-          <h2 className="text-2xl font-bold tracking-tight mb-4 text-foreground">
+        <section className="relative -mx-4 sm:-mx-6 lg:-mx-8"> {/* Extend carousel bleed */}
+          <h2 className="text-2xl font-bold tracking-tight mb-4 px-4 sm:px-6 lg:px-8 text-foreground sr-only"> {/* Hide title visually, keep for screen readers */}
             Recently Added
           </h2>
           <Carousel
             opts={{
               align: "start",
-              loop: recentVideos.length > 4, // Loop only if enough items
+              loop: recentVideos.length > 1, // Loop only if more than one item
             }}
-            className="w-full" // Ensure carousel itself takes width
+            className="w-full"
           >
-            <CarouselContent className="-ml-2 md:-ml-4"> {/* Adjust margin for spacing */}
+            <CarouselContent className="-ml-0"> {/* Remove margin */}
               {recentVideos.map((video) => (
-                <CarouselItem key={video.id} className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6"> {/* Responsive item size */}
-                   <div className="p-1">
-                      <VideoCard video={video} />
-                   </div>
+                <CarouselItem key={video.id} className="pl-0 basis-full"> {/* Show one item, remove padding */}
+                  <FeaturedVideoCarouselItem video={video} />
                 </CarouselItem>
               ))}
             </CarouselContent>
-             {/* Optional: Add Prev/Next only if enough items */}
+            {/* Position Prev/Next inside */}
             {recentVideos.length > 1 && (
                 <>
-                    <CarouselPrevious className="absolute left-[-10px] top-1/2 -translate-y-1/2 z-10 hidden sm:flex" />
-                    <CarouselNext className="absolute right-[-10px] top-1/2 -translate-y-1/2 z-10 hidden sm:flex" />
+                    <CarouselPrevious className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-10 h-10 w-10 sm:h-12 sm:w-12" />
+                    <CarouselNext className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-10 h-10 w-10 sm:h-12 sm:w-12" />
                 </>
             )}
           </Carousel>
