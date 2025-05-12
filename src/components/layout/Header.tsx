@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react'; // Import useState
 import Link from 'next/link';
-import { Film, Upload, LogIn, LogOut, UserCircle, ShieldCheck } from 'lucide-react';
+import { Film, LogIn, LogOut, UserCircle, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -25,9 +25,9 @@ export default function Header() {
   const { currentUser, logout, isLoading } = useAuthContext();
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false); // State for modal
 
-  const navLinks = [
-    { href: '/', label: 'Home', icon: <Film className="mr-2 h-5 w-5" />, requiresAuth: false },
-    { href: '/upload', label: 'Upload', icon: <Upload className="mr-2 h-5 w-5" />, requiresAuth: true },
+  const navLinks: { href: string; label: string; icon?: JSX.Element; requiresAuth: boolean }[] = [
+    // { href: '/', label: 'Home', icon: <Film className="mr-2 h-5 w-5" />, requiresAuth: false }, // Removed Home
+    // { href: '/upload', label: 'Upload', icon: <Upload className="mr-2 h-5 w-5" />, requiresAuth: true }, // Removed Upload
   ];
 
   const getInitials = (name?: string) => {
@@ -59,27 +59,30 @@ export default function Header() {
             </span>
           </Link>
           <div className="flex items-center space-x-2">
-            <nav className="flex items-center space-x-1">
-              {navLinks.map((link) => (
-                (!link.requiresAuth || currentUser) && (
-                  <Button
-                    key={link.href}
-                    variant={pathname === link.href ? 'default' : 'ghost'}
-                    size="sm"
-                    asChild
-                    className={cn(
-                      "text-sm font-medium transition-colors hover:text-primary",
-                      pathname === link.href ? "text-primary-foreground" : "text-muted-foreground"
-                    )}
-                  >
-                    <Link href={link.href}>
-                      {/* {link.icon} */}
-                      {link.label}
-                    </Link>
-                  </Button>
-                )
-              ))}
-            </nav>
+            {navLinks.length > 0 && (
+                 <nav className="flex items-center space-x-1">
+                {navLinks.map((link) => (
+                    (!link.requiresAuth || currentUser) && (
+                    <Button
+                        key={link.href}
+                        variant={pathname === link.href ? 'default' : 'ghost'}
+                        size="sm"
+                        asChild
+                        className={cn(
+                        "text-sm font-medium transition-colors hover:text-primary",
+                        pathname === link.href ? "text-primary-foreground" : "text-muted-foreground"
+                        )}
+                    >
+                        <Link href={link.href}>
+                        {/* {link.icon} */}
+                        {link.label}
+                        </Link>
+                    </Button>
+                    )
+                ))}
+                </nav>
+            )}
+           
 
             {isLoading ? (
               <div className="h-9 w-20 animate-pulse rounded-md bg-muted"></div>

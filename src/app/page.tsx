@@ -9,7 +9,7 @@ import type { Video } from '@/types'; // Import Video type
 import { useVideoContext } from '@/contexts/VideoContext';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Upload, Film, Tv } from 'lucide-react';
+import { Film, Tv, Search } from 'lucide-react'; // Changed Upload to Search or similar
 import {
   Carousel,
   CarouselContent,
@@ -115,16 +115,13 @@ export default function HomePage() {
 
       {videos.length === 0 && (
           <div className="text-center py-20 border-2 border-dashed border-muted-foreground/30 rounded-lg mt-10">
-            <Upload className="mx-auto h-16 w-16 text-muted-foreground mb-6" />
+            <Search className="mx-auto h-16 w-16 text-muted-foreground mb-6" /> 
             <h2 className="text-2xl font-semibold text-foreground mb-3">Your Library is Empty</h2>
             <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-              It looks like there are no videos here yet. Upload your first video or ensure the media scanner is configured correctly.
+              It looks like there are no videos here yet. 
+              Please ensure the media scanner has run or check your media directories.
             </p>
-            <Button asChild size="lg">
-              <Link href="/upload">
-                <Upload className="mr-2 h-5 w-5" /> Upload Video
-              </Link>
-            </Button>
+            {/* Removed Upload button */}
           </div>
         )}
 

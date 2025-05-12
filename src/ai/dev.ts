@@ -1,4 +1,4 @@
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/generate-video-description.ts';
+// Removed: import '@/ai/flows/generate-video-description.ts';
