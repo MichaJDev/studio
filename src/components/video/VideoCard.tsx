@@ -1,7 +1,7 @@
 // src/components/video/VideoCard.tsx
 import type { Video } from '@/types';
 import Image from 'next/image';
-import Link from 'next/link';
+// Link import removed as navigation is handled by modal now
 import { PlayCircle, Clock, Tv, Film } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,13 +10,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 interface VideoCardProps {
   video: Video;
+  onCardClick: (video: Video) => void; // Callback to open modal
 }
 
-export default function VideoCard({ video }: VideoCardProps) {
+export default function VideoCard({ video, onCardClick }: VideoCardProps) {
   const isShow = video.type === 'show';
 
   return (
-    <Link href={`/watch/${video.id}`} className="group block">
+    <div onClick={() => onCardClick(video)} className="group block cursor-pointer"> {/* Changed Link to div and added onClick */}
        <TooltipProvider delayDuration={100}>
          <Tooltip>
             <TooltipTrigger asChild>
@@ -27,22 +28,20 @@ export default function VideoCard({ video }: VideoCardProps) {
                       src={video.thumbnailUrl}
                       alt={video.title}
                       fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw" // Adjusted sizes
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                       data-ai-hint={video.dataAiHint || (isShow ? "tv show" : "movie poster")}
-                      priority={false} // Avoid prioritizing all card images
+                      priority={false}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent opacity-100 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <PlayCircle className="h-16 w-16 text-white/80 drop-shadow-lg" />
                     </div>
-                    {/* Display SxE badge for shows */}
                     {isShow && video.season !== undefined && video.episode !== undefined && (
                        <Badge variant="secondary" className="absolute top-2 right-2 text-xs">
                           S{String(video.season).padStart(2, '0')}E{String(video.episode).padStart(2, '0')}
                        </Badge>
                     )}
-                     {/* Display Type icon */}
                     <div className="absolute bottom-2 left-2">
                       <Badge variant={isShow ? "default" : "secondary"} className="bg-black/50 text-white backdrop-blur-sm">
                          {isShow ? <Tv className="h-3 w-3" /> : <Film className="h-3 w-3" />}
@@ -52,10 +51,8 @@ export default function VideoCard({ video }: VideoCardProps) {
                 </CardHeader>
                 <CardContent className="p-3 flex-grow">
                   <CardTitle className="text-base font-semibold mb-1 leading-tight group-hover:text-primary transition-colors line-clamp-1">
-                    {/* Show name for shows, Title for movies/uploads */}
                     {isShow ? video.showName : video.title}
                   </CardTitle>
-                   {/* Show episode title or movie title/description */}
                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {isShow ? video.title : (video.description || 'No description available')}
                    </p>
@@ -86,6 +83,6 @@ export default function VideoCard({ video }: VideoCardProps) {
             </TooltipContent>
          </Tooltip>
       </TooltipProvider>
-    </Link>
+    </div>
   );
 }

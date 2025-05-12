@@ -11,6 +11,8 @@ interface VideoContextType {
   addVideo: (video: Video) => void;
   getVideoById: (id: string) => Video | undefined;
   getRecentVideos: (count: number) => Video[];
+  getEpisodesForShowAndSeason: (showName: string, seasonNumber: number) => Video[];
+  getSeasonsForShow: (showName: string) => number[];
 }
 
 const VideoContext = createContext<VideoContextType | undefined>(undefined);
@@ -41,7 +43,31 @@ export function VideoProvider({ children }: { children: ReactNode }) {
     return videos.slice(0, count);
   };
 
-  const contextValue = useMemo(() => ({ videos, addVideo, getVideoById, getRecentVideos }), [videos]); // Removed addVideo, getVideoById from deps as they don't change
+  const getEpisodesForShowAndSeason = (showName: string, seasonNumber: number): Video[] => {
+    return videos.filter(
+      (video) => video.type === 'show' && video.showName === showName && video.season === seasonNumber
+    ).sort((a, b) => (a.episode || 0) - (b.episode || 0)); // Sort by episode number
+  };
+
+  const getSeasonsForShow = (showName: string): number[] => {
+    const seasons = new Set<number>();
+    videos.forEach((video) => {
+      if (video.type === 'show' && video.showName === showName && video.season !== undefined) {
+        seasons.add(video.season);
+      }
+    });
+    return Array.from(seasons).sort((a, b) => a - b); // Sort seasons numerically
+  };
+
+
+  const contextValue = useMemo(() => ({ 
+    videos, 
+    addVideo, 
+    getVideoById, 
+    getRecentVideos,
+    getEpisodesForShowAndSeason,
+    getSeasonsForShow 
+  }), [videos]);
 
   return (
     <VideoContext.Provider value={contextValue}>

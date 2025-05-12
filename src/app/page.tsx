@@ -1,8 +1,11 @@
 // src/app/page.tsx
 "use client";
 
+import { useState } from 'react';
 import VideoCard from '@/components/video/VideoCard';
-import FeaturedVideoCarouselItem from '@/components/video/FeaturedVideoCarouselItem'; // Import the new component
+import FeaturedVideoCarouselItem from '@/components/video/FeaturedVideoCarouselItem';
+import VideoDetailsModal from '@/components/video/VideoDetailsModal'; // Import the modal
+import type { Video } from '@/types'; // Import Video type
 import { useVideoContext } from '@/contexts/VideoContext';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -17,35 +20,43 @@ import {
 
 export default function HomePage() {
   const { videos, getRecentVideos } = useVideoContext();
-  const recentVideos = getRecentVideos(5); // Get the 5 most recent videos
+  const [selectedVideoForModal, setSelectedVideoForModal] = useState<Video | null>(null);
 
-  const movies = videos.filter(v => v.type === 'movie' || (v.type === 'upload' && !v.season)); // Treat uploads without season as movies for now
-  const shows = videos.filter(v => v.type === 'show' || (v.type === 'upload' && v.season)); // Treat uploads with season as shows
+  const recentVideos = getRecentVideos(5); 
+
+  const movies = videos.filter(v => v.type === 'movie' || (v.type === 'upload' && !v.season));
+  const shows = videos.filter(v => v.type === 'show' || (v.type === 'upload' && v.season));
+
+  const handleOpenModal = (video: Video) => {
+    setSelectedVideoForModal(video);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedVideoForModal(null);
+  };
 
   return (
     <div className="space-y-12">
 
-      {/* Recently Added Carousel - Updated */}
       {recentVideos.length > 0 && (
-        <section className="relative -mx-4 sm:-mx-6 lg:-mx-8"> {/* Extend carousel bleed */}
-          <h2 className="text-2xl font-bold tracking-tight mb-4 px-4 sm:px-6 lg:px-8 text-foreground sr-only"> {/* Hide title visually, keep for screen readers */}
+        <section className="relative -mx-4 sm:-mx-6 lg:-mx-8">
+          <h2 className="text-2xl font-bold tracking-tight mb-4 px-4 sm:px-6 lg:px-8 text-foreground sr-only">
             Recently Added
           </h2>
           <Carousel
             opts={{
               align: "start",
-              loop: recentVideos.length > 1, // Loop only if more than one item
+              loop: recentVideos.length > 1,
             }}
             className="w-full"
           >
-            <CarouselContent className="-ml-0"> {/* Remove margin */}
+            <CarouselContent className="-ml-0">
               {recentVideos.map((video) => (
-                <CarouselItem key={video.id} className="pl-0 basis-full"> {/* Show one item, remove padding */}
+                <CarouselItem key={video.id} className="pl-0 basis-full">
                   <FeaturedVideoCarouselItem video={video} />
                 </CarouselItem>
               ))}
             </CarouselContent>
-            {/* Position Prev/Next inside */}
             {recentVideos.length > 1 && (
                 <>
                     <CarouselPrevious className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-10 h-10 w-10 sm:h-12 sm:w-12" />
@@ -56,7 +67,6 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Movies Section */}
       {movies.length > 0 && (
         <section>
           <h2 className="text-2xl font-bold tracking-tight mb-4 text-foreground flex items-center">
@@ -64,28 +74,25 @@ export default function HomePage() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
             {movies.map((video) => (
-              <VideoCard key={video.id} video={video} />
+              <VideoCard key={video.id} video={video} onCardClick={handleOpenModal} />
             ))}
           </div>
         </section>
       )}
 
-       {/* TV Shows Section */}
        {shows.length > 0 && (
         <section>
           <h2 className="text-2xl font-bold tracking-tight mb-4 text-foreground flex items-center">
             <Tv className="mr-3 h-6 w-6 text-primary" /> TV Shows
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-             {/* TODO: Group shows by showName later if desired */}
             {shows.map((video) => (
-              <VideoCard key={video.id} video={video} />
+              <VideoCard key={video.id} video={video} onCardClick={handleOpenModal} />
             ))}
           </div>
         </section>
        )}
 
-      {/* Empty State */}
       {videos.length === 0 && (
           <div className="text-center py-20 border-2 border-dashed border-muted-foreground/30 rounded-lg mt-10">
             <Upload className="mx-auto h-16 w-16 text-muted-foreground mb-6" />
@@ -100,6 +107,14 @@ export default function HomePage() {
             </Button>
           </div>
         )}
+      
+      {selectedVideoForModal && (
+        <VideoDetailsModal
+          video={selectedVideoForModal}
+          isOpen={!!selectedVideoForModal}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 }
