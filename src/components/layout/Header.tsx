@@ -1,10 +1,9 @@
-
 // src/components/layout/Header.tsx
 "use client";
 
 import React, { useState } from 'react'; // Import useState
 import Link from 'next/link';
-import { Gem, LogIn, LogOut, UserCircle, ShieldCheck } from 'lucide-react'; // Changed Film to Gem
+import { Sparkles, LogIn, LogOut, UserCircle, ShieldCheck } from 'lucide-react'; // Changed Gem to Sparkles
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -53,7 +52,7 @@ export default function Header() {
       <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
-            <Gem className="h-8 w-8 text-primary" /> {/* Changed from Film to Gem */}
+            <Sparkles className="h-8 w-8 text-primary" /> {/* Changed from Gem to Sparkles */}
             <span className="text-2xl font-bold tracking-tight text-foreground">
               PrismmTv {/* Changed from StreamVerse */}
             </span>
