@@ -38,11 +38,7 @@ export default function VideoCard({ video, onCardClick }: VideoCardProps) {
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <PlayCircle className="h-16 w-16 text-white/80 drop-shadow-lg" />
                     </div>
-                    {isShow && video.season !== undefined && video.episode !== undefined && (
-                       <Badge variant="secondary" className="absolute top-2 right-2 text-xs">
-                          S{String(video.season).padStart(2, '0')}E{String(video.episode).padStart(2, '0')}
-                       </Badge>
-                    )}
+                    {/* SxxExx badge removed from here */}
                      <div className="absolute bottom-2 left-2">
                        <Badge variant={isShow ? "default" : "secondary"} className="bg-black/50 text-white backdrop-blur-sm">
                          {isShow ? <Tv className="h-3 w-3" /> : <Film className="h-3 w-3" />}
