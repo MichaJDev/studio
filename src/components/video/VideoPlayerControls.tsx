@@ -226,9 +226,9 @@ export default function VideoPlayerControls({
                     <PopoverContent className="w-80 bg-background/90 backdrop-blur-sm border-border text-foreground p-0" side="top" align="end">
                         <ScrollArea className="max-h-[70vh]">
                             <div className="p-4 border-b border-border">
-                                <h4 className="font-medium leading-none">{videoData.showName}</h4>
+                                <h4 className="font-semibold leading-none mb-1">Episodes</h4>
                                 <p className="text-sm text-muted-foreground">
-                                    Season {String(videoData.season).padStart(2, '0')}
+                                    {videoData.showName} - Season {String(videoData.season).padStart(2, '0')}
                                 </p>
                             </div>
                             <div className="p-2">
@@ -260,15 +260,16 @@ export default function VideoPlayerControls({
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-60 bg-background/90 backdrop-blur-sm border-border text-foreground p-2" side="top" align="end">
+                        <Label className="block text-sm font-medium p-2 border-b border-border mb-1">Subtitles</Label>
                         <RadioGroup value={selectedSubtitleLang} onValueChange={onSelectSubtitle}>
                             <div className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer">
                                 <RadioGroupItem value="off" id="sub-off" className="border-primary text-primary ring-offset-background"/>
-                                <Label htmlFor="sub-off" className="font-normal cursor-pointer">Off</Label>
+                                <Label htmlFor="sub-off" className="font-normal cursor-pointer flex-1">Off</Label>
                             </div>
                             {availableSubtitleTracks.map((sub) => (
                                 <div key={sub.srclang} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer">
                                     <RadioGroupItem value={sub.srclang} id={`sub-${sub.srclang}`} className="border-primary text-primary ring-offset-background"/>
-                                    <Label htmlFor={`sub-${sub.srclang}`} className="font-normal cursor-pointer">{sub.label}</Label>
+                                    <Label htmlFor={`sub-${sub.srclang}`} className="font-normal cursor-pointer flex-1">{sub.label}</Label>
                                 </div>
                             ))}
                         </RadioGroup>
@@ -286,11 +287,12 @@ export default function VideoPlayerControls({
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-60 bg-background/90 backdrop-blur-sm border-border text-foreground p-2" side="top" align="end">
+                         <Label className="block text-sm font-medium p-2 border-b border-border mb-1">Audio Track</Label>
                         <RadioGroup value={selectedAudioTrackId} onValueChange={onSelectAudioTrack}>
                             {availableAudioTracks.map((track) => (
                                 <div key={track.id} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer">
                                     <RadioGroupItem value={track.id} id={`audio-${track.id}`} className="border-primary text-primary ring-offset-background"/>
-                                    <Label htmlFor={`audio-${track.id}`} className="font-normal cursor-pointer">{track.label}</Label>
+                                    <Label htmlFor={`audio-${track.id}`} className="font-normal cursor-pointer flex-1">{track.label}</Label>
                                 </div>
                             ))}
                         </RadioGroup>
