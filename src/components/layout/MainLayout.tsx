@@ -1,0 +1,21 @@
+// src/components/layout/MainLayout.tsx
+import type { ReactNode } from 'react';
+import Header from './Header';
+
+interface MainLayoutProps {
+  children: ReactNode;
+}
+
+export default function MainLayout({ children }: MainLayoutProps) {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header />
+      <main className="flex-1 container max-w-screen-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {children}
+      </main>
+      <footer className="py-6 text-center text-muted-foreground text-sm">
+        © {new Date().getFullYear()} StreamVerse. All rights reserved.
+      </footer>
+    </div>
+  );
+}
