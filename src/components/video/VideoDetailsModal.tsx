@@ -10,6 +10,7 @@ import {
   Dialog,
   DialogContent,
   DialogClose,
+  DialogTitle, // Import DialogTitle
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -65,9 +66,13 @@ export default function VideoDetailsModal({ video, isOpen, onClose }: VideoDetai
     ? video.thumbnailUrl.replace(/(\d+)\/(\d+)/, '1280/720') // Higher res for modal background
     : video.thumbnailUrl;
 
+  const modalTitle = isShow ? video.showName : video.title;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-none w-screen h-screen p-0 overflow-hidden bg-card text-card-foreground flex flex-col">
+        {/* Add a visually hidden DialogTitle for accessibility */}
+        <DialogTitle className="sr-only">{modalTitle}</DialogTitle>
         <div className="relative w-full h-full">
           {/* Background Poster */}
           <Image
@@ -115,12 +120,12 @@ export default function VideoDetailsModal({ video, isOpen, onClose }: VideoDetai
                   </Button>
               )}
             </div>
-            
+
             {/* Right Panel: Details, (Season/Episode for Shows) */}
             <ScrollArea className="md:w-2/3 lg:w-3/4 flex-grow text-foreground">
               <div className="max-w-3xl mx-auto md:mx-0">
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3 drop-shadow-lg">
-                  {isShow ? video.showName : video.title}
+                  {modalTitle} {/* Use the determined title */}
                 </h1>
                 {isShow && video.title !== video.showName && (
                     <h2 className="text-xl sm:text-2xl text-primary mb-4">
