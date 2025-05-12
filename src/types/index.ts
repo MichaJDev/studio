@@ -1,4 +1,12 @@
 
+// src/types/index.ts
+
+export interface AudioTrackInfo {
+  id: string; // Corresponds to the AudioTrack.id
+  language: string; // e.g., 'en', 'es'
+  label: string; // e.g., 'English Stereo', 'Spanish 5.1'
+}
+
 export interface Video {
   id: string;
   title: string; // Beautified title
@@ -25,6 +33,7 @@ export interface Video {
   // Player enhancement fields
   introEndTimeInSeconds?: number; // e.g., 85 (for 1m 25s intro)
   durationInSeconds?: number; // e.g., 2700 (for 45m duration)
+  audioTracks?: AudioTrackInfo[]; // Array of available audio tracks
 }
 
 export interface User {
@@ -34,4 +43,3 @@ export interface User {
   name?: string;
   password?: string; // **INSECURE**: Only for local storage demo. Do NOT store plain text passwords in real applications.
 }
-

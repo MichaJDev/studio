@@ -1,14 +1,14 @@
 // src/components/video/VideoPlayer.tsx
 "use client";
 
-import type { Video } from '@/types';
+import type { Video, AudioTrackInfo } from '@/types';
 import { useVideoContext } from '@/contexts/VideoContext';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import VideoPlayerControls from './VideoPlayerControls';
 
 interface VideoPlayerProps {
-  video: Video; // Changed from src, title to full video object
+  video: Video;
   autoplay?: boolean;
 }
 
@@ -27,6 +27,10 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
   const [isShowingControls, setIsShowingControls] = useState(true);
   const [isNextUpActive, setIsNextUpActive] = useState(false);
   const [nextUpCountdown, setNextUpCountdown] = useState(10); // Countdown in seconds
+
+  // Audio Track State
+  const [availableAudioTracks, setAvailableAudioTracks] = useState<AudioTrackInfo[]>([]);
+  const [selectedAudioTrackId, setSelectedAudioTrackId] = useState<string | undefined>(undefined);
 
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const nextUpTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -78,6 +82,42 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     }
   }, [isPlaying]);
 
+
+  // Function to update audio track state based on video element
+  const updateAudioTracks = useCallback(() => {
+     const videoElement = videoRef.current;
+     if (videoElement && videoElement.audioTracks) {
+       const tracks: AudioTrackInfo[] = [];
+       let enabledTrackId: string | undefined = undefined;
+       for (let i = 0; i < videoElement.audioTracks.length; i++) {
+         const track = videoElement.audioTracks[i];
+         tracks.push({
+           id: track.id || String(i), // Use index as fallback ID
+           language: track.language || 'unknown',
+           label: track.label || `Track ${i + 1}${track.language ? ` (${track.language})` : ''}`,
+         });
+         if (track.enabled) {
+           enabledTrackId = track.id || String(i);
+         }
+       }
+       // If no track is explicitly enabled, assume the first one is active
+       if (!enabledTrackId && tracks.length > 0) {
+           enabledTrackId = tracks[0].id;
+           // Attempt to enable the first track if none are enabled (might not always work)
+           if (videoElement.audioTracks[0]) {
+               videoElement.audioTracks[0].enabled = true;
+           }
+       }
+       
+       setAvailableAudioTracks(tracks);
+       setSelectedAudioTrackId(enabledTrackId);
+     } else {
+        // If no audioTracks API support or no tracks, use simulated data if available
+        setAvailableAudioTracks(video.audioTracks || []);
+        setSelectedAudioTrackId(video.audioTracks && video.audioTracks.length > 0 ? video.audioTracks[0].id : undefined);
+     }
+  }, [video.audioTracks]); // Depend on simulated data from props
+
   useEffect(() => {
     const videoElement = videoRef.current;
     if (!videoElement) return;
@@ -88,7 +128,10 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
       resetControlsTimeout(); // Keep controls visible when paused
     };
     const handleTimeUpdate = () => setCurrentTime(videoElement.currentTime);
-    const handleLoadedMetadata = () => setDuration(videoElement.duration);
+    const handleLoadedMetadata = () => {
+        setDuration(videoElement.duration);
+        updateAudioTracks(); // Update tracks when metadata is loaded
+    };
     const handleVolumeChange = () => {
       setVolume(videoElement.volume);
       setIsMuted(videoElement.muted);
@@ -101,6 +144,13 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
         resetControlsTimeout(); // Ensure controls (and next up) are visible
       }
     };
+    
+    // Listener for changes in the audio track list or enabled status
+    const handleAudioTrackChange = () => {
+        // console.log("Audio tracks changed, updating state.");
+        updateAudioTracks();
+    };
+
 
     videoElement.addEventListener('play', handlePlay);
     videoElement.addEventListener('pause', handlePause);
@@ -108,6 +158,14 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
     videoElement.addEventListener('volumechange', handleVolumeChange);
     videoElement.addEventListener('ended', handleEnded);
+    
+    // Add listeners for audio track changes
+    if (videoElement.audioTracks) {
+        videoElement.audioTracks.addEventListener('change', handleAudioTrackChange);
+        videoElement.audioTracks.addEventListener('addtrack', handleAudioTrackChange);
+        videoElement.audioTracks.addEventListener('removetrack', handleAudioTrackChange);
+    }
+
 
     // Initial setup
     if (autoplay && videoElement.paused) {
@@ -117,6 +175,7 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     setCurrentTime(videoElement.currentTime);
     setVolume(videoElement.volume);
     setIsMuted(videoElement.muted);
+    updateAudioTracks(); // Initial check for audio tracks
     resetControlsTimeout();
 
     return () => {
@@ -126,12 +185,21 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
       videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
       videoElement.removeEventListener('volumechange', handleVolumeChange);
       videoElement.removeEventListener('ended', handleEnded);
+      
+      // Remove audio track listeners
+      if (videoElement.audioTracks) {
+        videoElement.audioTracks.removeEventListener('change', handleAudioTrackChange);
+        videoElement.audioTracks.removeEventListener('addtrack', handleAudioTrackChange);
+        videoElement.audioTracks.removeEventListener('removetrack', handleAudioTrackChange);
+      }
+
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
       if (nextUpTimeoutRef.current) clearTimeout(nextUpTimeoutRef.current);
       if (nextUpIntervalRef.current) clearInterval(nextUpIntervalRef.current);
     };
-  }, [video, autoplay, resetControlsTimeout, nextEpisode]);
-  
+    // Add updateAudioTracks to dependency array to re-run if the function identity changes (though unlikely with useCallback)
+  }, [video, autoplay, resetControlsTimeout, nextEpisode, updateAudioTracks]); 
+
   // Effect for Next Up Countdown
   useEffect(() => {
     if (isNextUpActive && nextEpisode) {
@@ -152,7 +220,8 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     return () => {
       if (nextUpIntervalRef.current) clearInterval(nextUpIntervalRef.current);
     };
-  }, [isNextUpActive, nextEpisode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNextUpActive, nextEpisode]); // handleConfirmNextUp dependency removed as it causes re-renders
 
 
   const handleTogglePlay = useCallback(() => {
@@ -200,7 +269,7 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     }
     resetControlsTimeout();
   }, [resetControlsTimeout]);
-  
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -232,7 +301,7 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
   const handleMouseMove = useCallback(() => {
     resetControlsTimeout();
   }, [resetControlsTimeout]);
-  
+
   const handleCancelNextUp = useCallback(() => {
     setIsNextUpActive(false);
     if (nextUpIntervalRef.current) clearInterval(nextUpIntervalRef.current);
@@ -244,15 +313,42 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     setIsNextUpActive(false);
     if (nextUpIntervalRef.current) clearInterval(nextUpIntervalRef.current);
     handlePlayNext();
-  }, [handlePlayNext]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handlePlayNext]); // Removed handlePlayNext from deps to avoid re-renders
+
 
   const handleSelectEpisode = (episodeId: string) => {
     router.push(`/watch/${episodeId}`);
   };
 
+  const handleSelectAudioTrack = useCallback((trackId: string) => {
+    const videoElement = videoRef.current;
+    if (videoElement && videoElement.audioTracks) {
+        let found = false;
+        for (let i = 0; i < videoElement.audioTracks.length; i++) {
+            const track = videoElement.audioTracks[i];
+            const currentTrackId = track.id || String(i);
+            if (currentTrackId === trackId) {
+                track.enabled = true;
+                setSelectedAudioTrackId(trackId);
+                found = true;
+            } else {
+                track.enabled = false;
+            }
+        }
+        if (!found) {
+            console.warn(`Audio track with ID ${trackId} not found.`);
+        }
+        resetControlsTimeout();
+    } else {
+        console.warn("Audio tracks API not available or no tracks found.");
+        // Fallback or alternative logic if needed
+    }
+}, [resetControlsTimeout]);
+
 
   return (
-    <div 
+    <div
       ref={playerContainerRef}
       className="relative w-full h-full aspect-video bg-black overflow-hidden"
       onMouseMove={handleMouseMove}
@@ -291,6 +387,8 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
         prevEpisode={prevEpisode}
         currentEpisodeIndexInSeason={currentEpisodeIndexInSeason}
         episodesInCurrentSeason={episodesInCurrentSeason}
+        availableAudioTracks={availableAudioTracks}
+        selectedAudioTrackId={selectedAudioTrackId}
         onTogglePlay={handleTogglePlay}
         onSeek={handleSeek}
         onVolumeChange={handleVolumeChange}
@@ -299,6 +397,7 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
         onPlayNext={handlePlayNext}
         onPlayPrev={handlePlayPrev}
         onSkipIntro={handleSkipIntro}
+        onSelectAudioTrack={handleSelectAudioTrack}
         isNextUpActive={isNextUpActive}
         nextUpCountdown={nextUpCountdown}
         onCancelNextUp={handleCancelNextUp}

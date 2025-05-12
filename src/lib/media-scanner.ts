@@ -1,5 +1,5 @@
 // src/lib/media-scanner.ts
-import type { Video } from '@/types';
+import type { Video, AudioTrackInfo } from '@/types';
 
 function parseDurationToSeconds(durationStr?: string): number | undefined {
   if (!durationStr || durationStr === "N/A") return undefined;
@@ -13,7 +13,7 @@ function parseDurationToSeconds(durationStr?: string): number | undefined {
   if (hourMatch) totalSeconds += parseInt(hourMatch[1], 10) * 3600;
   if (minuteMatch) totalSeconds += parseInt(minuteMatch[1], 10) * 60;
   // if (secondMatch) totalSeconds += parseInt(secondMatch[1], 10);
-  
+
   return totalSeconds > 0 ? totalSeconds : undefined;
 }
 
@@ -22,8 +22,7 @@ function parseDurationToSeconds(durationStr?: string): number | undefined {
  * Simulates scanning media files and extracting metadata.
  * In a real application, this would involve using fs to read directories,
  * complex regex parsing for filenames, and potentially external API calls for metadata.
- *
- * For demonstration, this returns a hardcoded list.
+ * This simulation now includes dummy audio track data.
  */
 export function scanMediaFiles(): Video[] {
   const now = Date.now();
@@ -33,7 +32,7 @@ export function scanMediaFiles(): Video[] {
       id: 'movie-sim-1',
       originalFilename: 'Awesome.Movie.2023.1080p.mkv',
       title: 'Awesome Movie',
-      description: 'A simulated awesome movie from the year 2023.',
+      description: 'A simulated awesome movie from the year 2023, now with multiple audio tracks.',
       thumbnailUrl: 'https://picsum.photos/400/225?random=m1',
       videoSrc: '/media_files/Movies/Awesome.Movie.2023.1080p.mkv', // Placeholder path
       subtitleSrc: '/Subtitle_files/Awesome.Movie.2023.1080p.srt', // Placeholder path
@@ -44,6 +43,13 @@ export function scanMediaFiles(): Video[] {
       type: 'movie',
       quality: '1080p',
       year: 2023,
+      // --- Simulated Audio Tracks ---
+      audioTracks: [
+        { id: '0', language: 'en', label: 'English (Stereo)' }, // Assume ID '0' is the first track
+        { id: '1', language: 'es', label: 'Español (5.1)' },   // Assume ID '1' is the second track
+        { id: '2', language: 'en', label: 'English (Commentary)' },
+      ],
+      // -----------------------------
     },
     {
       id: 'movie-sim-2',
@@ -59,6 +65,11 @@ export function scanMediaFiles(): Video[] {
       type: 'movie',
       quality: '720p',
       year: 2021,
+       // --- Simulated Audio Tracks (Only one) ---
+      audioTracks: [
+        { id: '0', language: 'en', label: 'English' },
+      ],
+      // -----------------------------
     },
     // Shows
     {
@@ -79,6 +90,12 @@ export function scanMediaFiles(): Video[] {
       season: 1,
       episode: 1,
       episodeTitle: 'Pilot Episode',
+      // --- Simulated Audio Tracks ---
+      audioTracks: [
+        { id: '0', language: 'en', label: 'English' },
+        { id: '1', language: 'fr', label: 'Français' },
+      ],
+      // -----------------------------
     },
     {
       id: 'show-sim-1-s01e02',
@@ -99,6 +116,12 @@ export function scanMediaFiles(): Video[] {
       season: 1,
       episode: 2,
       episodeTitle: 'The Next Step',
+      // --- Simulated Audio Tracks ---
+      audioTracks: [
+        { id: '0', language: 'en', label: 'English' },
+        { id: '1', language: 'fr', label: 'Français' },
+      ],
+      // -----------------------------
     },
      {
       id: 'show-sim-1-s01e03',
@@ -116,6 +139,9 @@ export function scanMediaFiles(): Video[] {
       type: 'show',
       season: 1,
       episode: 3,
+      audioTracks: [ // Default English only
+         { id: '0', language: 'en', label: 'English' },
+      ],
     },
     {
       id: 'show-sim-2-s01e01',
@@ -135,8 +161,12 @@ export function scanMediaFiles(): Video[] {
       season: 1,
       episode: 1,
       episodeTitle: 'The Beginning',
+       audioTracks: [ // Default English only
+         { id: '0', language: 'en', label: 'English' },
+      ],
     },
     // Include original sample videos marked as 'upload' type for variety
+    // Uploaded videos won't typically have multiple tracks simulated unless explicitly added
     {
       id: 'sample-1',
       title: 'Ocean Wonders',
@@ -220,6 +250,8 @@ function beautifyTitle(filename: string): string {
   title = title.replace(/\s*S\d{2}E\d{2}\s*/gi, ' ');
   // Trim whitespace
   title = title.trim();
+  // Capitalize first letter of each word (optional, can be too aggressive)
+  // title = title.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   return title;
 }
 
@@ -232,6 +264,7 @@ interface ParsedMeta {
   episode?: number;
   episodeTitle?: string;
   showName?: string;
+  // audioTracks?: AudioTrackInfo[]; // Could potentially add audio track parsing here if tools like ffprobe are used
 }
 
 function parseFilename(filename: string): ParsedMeta {
@@ -247,14 +280,20 @@ function parseFilename(filename: string): ParsedMeta {
   if (qualityMatch) parsed.quality = qualityMatch[1].toUpperCase();
 
   // Show SxxExx
-  const showMatch = filename.match(/(.*?)[.\s](S(\d{2}))(E(\d{2}))[.\s]?(.*?)\./i);
+  const showMatch = filename.match(/(.*?)[.\s](S(\d{2}))(E(\d{2}))[.\s]?(.*?)\.(mkv|mp4|avi|mov)/i); // Match common video extensions
   if (showMatch) {
     parsed.showName = beautifyTitle(showMatch[1]); // Title before SxxExx is show name
     parsed.season = parseInt(showMatch[3], 10);
     parsed.episode = parseInt(showMatch[5], 10);
-    parsed.episodeTitle = beautifyTitle(showMatch[6] || `Episode ${parsed.episode}`); // Use remaining as episode title
-    parsed.title = parsed.episodeTitle; // Use episode title as the main title
+    // Try to extract episode title, otherwise default
+    const potentialEpisodeTitle = showMatch[6] ? beautifyTitle(showMatch[6]) : '';
+    parsed.episodeTitle = potentialEpisodeTitle || `Episode ${parsed.episode}`;
+    parsed.title = parsed.episodeTitle; // Use episode title as the main title for Video object
   }
+
+  // NOTE: Parsing audio tracks from filename is unreliable.
+  // This simulation adds audioTracks directly to the objects.
+  // A real implementation would use tools like ffprobe/mediainfo on the server.
 
   return parsed;
 }
@@ -262,4 +301,3 @@ function parseFilename(filename: string): ParsedMeta {
 // Note: The actual implementation of parseFilename and beautifyTitle would need
 // to be much more robust to handle various filename conventions.
 // The simulation uses pre-filled data based on what a parser *might* extract.
-
