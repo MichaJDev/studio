@@ -1,3 +1,4 @@
+
 export interface Video {
   id: string;
   title: string;
@@ -7,4 +8,11 @@ export interface Video {
   uploadedAt?: string; // ISO date string
   duration?: string; // e.g., "1h 23m" or "45m"
   dataAiHint?: string; // for placeholder images
+}
+
+export interface User {
+  id: string;
+  email: string;
+  role: 'user' | 'admin';
+  name?: string;
 }

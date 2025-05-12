@@ -1,3 +1,4 @@
+
 // src/app/watch/[videoId]/page.tsx
 "use client";
 
@@ -5,11 +6,9 @@ import { useEffect, useState } from 'react';
 import { useVideoContext } from '@/contexts/VideoContext';
 import VideoPlayer from '@/components/video/VideoPlayer';
 import type { Video } from '@/types';
-import { ArrowLeft, Clock, CalendarDays } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { AspectRatio } from "@/components/ui/aspect-ratio";
-
 
 interface WatchPageProps {
   params: { videoId: string };
@@ -17,7 +16,7 @@ interface WatchPageProps {
 
 export default function WatchPage({ params }: WatchPageProps) {
   const { getVideoById } = useVideoContext();
-  const [video, setVideo] = useState<Video | null | undefined>(undefined); // undefined for loading, null for not found
+  const [video, setVideo] = useState<Video | null | undefined>(undefined);
 
   useEffect(() => {
     const foundVideo = getVideoById(params.videoId);
@@ -26,7 +25,7 @@ export default function WatchPage({ params }: WatchPageProps) {
 
   if (video === undefined) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background text-foreground">
         <div className="text-center">
           <div role="status">
             <svg aria-hidden="true" className="inline w-10 h-10 text-muted-foreground animate-spin fill-primary" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -43,7 +42,7 @@ export default function WatchPage({ params }: WatchPageProps) {
 
   if (!video) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background text-foreground">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-destructive mb-4">Video Not Found</h1>
           <p className="text-muted-foreground mb-6">The video you are looking for does not exist or has been removed.</p>
@@ -58,44 +57,20 @@ export default function WatchPage({ params }: WatchPageProps) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto py-8">
-      <div className="mb-6">
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Browse
-          </Link>
-        </Button>
-      </div>
-      
-      <AspectRatio ratio={16 / 9} className="mb-6 bg-muted rounded-lg overflow-hidden">
-         <VideoPlayer src={video.videoSrc} title={video.title} />
-      </AspectRatio>
-
-      <div className="bg-card p-6 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-foreground mb-3">{video.title}</h1>
-        
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground mb-4">
-          {video.uploadedAt && (
-            <span className="flex items-center">
-              <CalendarDays className="h-4 w-4 mr-1.5" />
-              Uploaded: {new Date(video.uploadedAt).toLocaleDateString()}
-            </span>
-          )}
-          {video.duration && video.duration !== "N/A" && (
-            <span className="flex items-center">
-              <Clock className="h-4 w-4 mr-1.5" />
-              Duration: {video.duration}
-            </span>
-          )}
-        </div>
-        
-        {video.description && (
-          <div className="prose prose-invert max-w-none text-foreground/90">
-            <h2 className="text-xl font-semibold mt-6 mb-2 text-foreground/80">Description</h2>
-            <p className="whitespace-pre-wrap">{video.description}</p>
-          </div>
-        )}
-      </div>
+    <div className="fixed inset-0 z-50 bg-black">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        asChild 
+        className="absolute top-4 left-4 z-[60] text-white bg-black/30 hover:bg-black/50 hover:text-white"
+        aria-label="Go back"
+      >
+        <Link href="/">
+          <ArrowLeft className="h-6 w-6" />
+        </Link>
+      </Button>
+      <VideoPlayer src={video.videoSrc} title={video.title} />
+      {/* Video info could be overlaid if desired, but removed for full-screen focus */}
     </div>
   );
 }

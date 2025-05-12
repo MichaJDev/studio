@@ -1,7 +1,9 @@
+
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { VideoProvider } from '@/contexts/VideoContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from "@/components/ui/toaster";
 import MainLayout from '@/components/layout/MainLayout';
 
@@ -28,12 +30,14 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark"> {/* Enforce dark theme */}
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}>
-        <VideoProvider>
-          <MainLayout>
-            {children}
-          </MainLayout>
-          <Toaster />
-        </VideoProvider>
+        <AuthProvider>
+          <VideoProvider>
+            <MainLayout>
+              {children}
+            </MainLayout>
+            <Toaster />
+          </VideoProvider>
+        </AuthProvider>
       </body>
     </html>
   );
