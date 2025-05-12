@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { User, InviteCodeConfig } from '@/types';
+import type { User, InviteCodeConfig, InviteRequest } from '@/types';
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import useLocalStorage from '@/hooks/use-local-storage';
 import { useRouter } from 'next/navigation';
@@ -19,6 +19,7 @@ interface AuthContextType {
   currentUser: User | null;
   users: User[];
   inviteCodes: InviteCodeConfig[];
+  inviteRequests: InviteRequest[];
   isLoading: boolean;
   login: (email_provided: string, password_provided: string) => Promise<boolean>;
   logout: () => void;
@@ -26,6 +27,8 @@ interface AuthContextType {
   updateUser: (userId: string, updatedFields: Partial<User>) => void;
   createInviteCode: (code: string, description: string, maxUses: number) => Promise<{ success: boolean; error?: string }>;
   toggleInviteCodeStatus: (code: string) => void;
+  createInviteRequest: (email: string, reason: string) => Promise<{ success: boolean; error?: string }>;
+  updateInviteRequestStatus: (requestId: string, status: InviteRequest['status']) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,11 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ]);
   const [currentUser, setCurrentUser] = useLocalStorage<User | null>('prismmtv-current-user', null);
   const [inviteCodes, setInviteCodes] = useLocalStorage<InviteCodeConfig[]>('prismmtv-invite-codes', [
-    // Initial default invite codes
     { code: 'ADMIN_DEFAULT_CODE', description: 'Default code for initial admin', maxUses: 1, currentUses: 1, createdAt: new Date().toISOString(), isEnabled: true },
     { code: 'USER_WELCOME_CODE', description: 'Default code for initial user', maxUses: 1, currentUses: 1, createdAt: new Date().toISOString(), isEnabled: true },
-    { code: 'PRISMMTV_INVITE', description: 'General public invite', maxUses: 0, currentUses: 0, createdAt: new Date().toISOString(), isEnabled: true }, // 0 maxUses = infinite // Renamed PRISMMTV_INVITE
+    { code: 'PRISMMTV_INVITE', description: 'Legacy general public invite code (now points to request system)', maxUses: 0, currentUses: 0, createdAt: new Date().toISOString(), isEnabled: false }, // Disabled, as it's now a "request" flow
   ]);
+  const [inviteRequests, setInviteRequests] = useLocalStorage<InviteRequest[]>('prismmtv-invite-requests', []);
   // -----------------------------------------------------
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -194,9 +197,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ic.code === code ? { ...ic, isEnabled: !ic.isEnabled } : ic
       )
     );
-    const updatedCode = inviteCodes.find(ic => ic.code === code);
-    toast({ title: `Code "${code}" ${updatedCode?.isEnabled ? "Disabled" : "Enabled" }` });
+    const updatedCode = inviteCodes.find(ic => ic.code === code); // Find after update for correct status message
+    toast({ title: `Code "${code}" ${!updatedCode?.isEnabled ? "Disabled" : "Enabled" }` }); // Logic inverted to reflect the state *before* the click that will be rendered
   };
+
+  const createInviteRequest = async (email: string, reason: string): Promise<{ success: boolean; error?: string }> => {
+    if (!email.trim() || !reason.trim()) {
+      return { success: false, error: "Email and reason cannot be empty." };
+    }
+    if (inviteRequests.some(req => req.email === email && req.status === 'pending')) {
+      return { success: false, error: "You already have a pending invite request." };
+    }
+
+    const newRequest: InviteRequest = {
+      id: crypto.randomUUID(),
+      email,
+      reason,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+    setInviteRequests(prev => [newRequest, ...prev]);
+    toast({ title: "Invite Request Submitted", description: "Your request has been sent to the administrators." });
+    return { success: true };
+  };
+
+  const updateInviteRequestStatus = (requestId: string, status: InviteRequest['status']) => {
+    setInviteRequests(prev =>
+      prev.map(req =>
+        req.id === requestId ? { ...req, status } : req
+      )
+    );
+    toast({ title: "Invite Request Updated", description: `Request status changed to ${status}.` });
+  };
+
 
   const logout = () => {
     setCurrentUser(null); // Uses hook writing to 'prismmtv-current-user'
@@ -208,6 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       currentUser,
       users,
       inviteCodes,
+      inviteRequests,
       isLoading,
       login,
       logout,
@@ -215,7 +249,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       updateUser,
       createInviteCode,
       toggleInviteCodeStatus,
-  }), [currentUser, users, inviteCodes, isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+      createInviteRequest,
+      updateInviteRequestStatus,
+  }), [currentUser, users, inviteCodes, inviteRequests, isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -6,11 +6,12 @@ import { useVideoContext } from '@/contexts/VideoContext';
 import { useAuthContext } from '@/contexts/AuthContext'; // Import Auth context
 import type { Video } from '@/types';
 import Link from 'next/link';
-import { Film, Tv, Search, Loader2, LogIn, UserPlus, Diamond } from 'lucide-react'; // Import Loader2, LogIn, UserPlus, Diamond
+import { Film, Tv, Search, Loader2, LogIn, UserPlus, Diamond, Send } from 'lucide-react'; // Import Send
 import { Button } from '@/components/ui/button';
 import VideoCard from '@/components/video/VideoCard';
 import FeaturedVideoCarouselItem from '@/components/video/FeaturedVideoCarouselItem';
 import VideoDetailsModal from '@/components/video/VideoDetailsModal';
+import InviteRequestModal from '@/components/modals/InviteRequestModal'; // Import InviteRequestModal
 import {
   Carousel,
   CarouselContent,
@@ -20,31 +21,41 @@ import {
 } from "@/components/ui/carousel";
 import { cn } from '@/lib/utils';
 
-// Landing page component (can be moved to a separate file if desired)
+// Landing page component
 function LandingPage() {
+  const [isInviteRequestModalOpen, setIsInviteRequestModalOpen] = useState(false);
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] text-center px-4">
-      <Diamond className="h-20 w-20 text-primary mb-6" />
-      <h1 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">Welcome to PrismmTv</h1>
-      <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl">
-        Your personal media streaming server. Log in or register to access your library.
-      </p>
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Button asChild size="lg" className="text-lg px-8 py-6">
-          <Link href="/login">
-            <LogIn className="mr-2 h-5 w-5" /> Log In
-          </Link>
-        </Button>
-        <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6">
-          <Link href="/register">
-            <UserPlus className="mr-2 h-5 w-5" /> Register
-          </Link>
-        </Button>
+    <>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-8rem)] text-center px-4">
+        <Diamond className="h-20 w-20 text-primary mb-6" />
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">Welcome to PrismmTv</h1>
+        <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl">
+          Your personal media streaming server. Log in or register to access your library.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Button asChild size="lg" className="text-lg px-8 py-6">
+            <Link href="/login">
+              <LogIn className="mr-2 h-5 w-5" /> Log In
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="text-lg px-8 py-6">
+            <Link href="/register">
+              <UserPlus className="mr-2 h-5 w-5" /> Register
+            </Link>
+          </Button>
+        </div>
+        <div className="mt-8 text-center">
+            <p className="text-sm text-muted-foreground mb-2">
+                Don't have an invite code for registration?
+            </p>
+            <Button variant="link" onClick={() => setIsInviteRequestModalOpen(true)} className="text-primary font-semibold text-base">
+                <Send className="mr-2 h-4 w-4" /> Request an Invite
+            </Button>
+        </div>
       </div>
-       <p className="text-xs text-muted-foreground mt-8">
-         (Need an invite code to register? Try: PRISMMTV_INVITE)
-       </p>
-    </div>
+      <InviteRequestModal isOpen={isInviteRequestModalOpen} onClose={() => setIsInviteRequestModalOpen(false)} />
+    </>
   );
 }
 

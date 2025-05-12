@@ -62,3 +62,11 @@ export interface InviteCodeConfig {
   createdAt: string; // ISO string for when the code was created
   isEnabled: boolean; // To manually enable/disable codes without deleting
 }
+
+export interface InviteRequest {
+  id: string;
+  email: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'denied';
+  createdAt: string; // ISO string for when the request was made
+}
