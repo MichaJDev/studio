@@ -11,20 +11,19 @@ import {
   Minimize,
   SkipForward,
   SkipBack,
-  Settings2,
-  AudioLines,
   List,
-  Captions, // Icon for subtitles
+  AudioLines, // Keep for the combined trigger or specific tab
+  Captions,   // Keep for the combined trigger or specific tab
+  Languages   // New icon for combined settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import type { Video, AudioTrackInfo, SubtitleTrackInfo } from '@/types'; // Import SubtitleTrackInfo
+import type { Video, AudioTrackInfo, SubtitleTrackInfo } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs" // Import Tabs
 
 interface VideoPlayerControlsProps {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -41,8 +40,8 @@ interface VideoPlayerControlsProps {
   episodesInCurrentSeason: Video[];
   availableAudioTracks: AudioTrackInfo[];
   selectedAudioTrackId?: string;
-  availableSubtitleTracks: SubtitleTrackInfo[]; // New prop
-  selectedSubtitleLang: string | 'off'; // New prop
+  availableSubtitleTracks: SubtitleTrackInfo[];
+  selectedSubtitleLang: string | 'off';
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
   onVolumeChange: (volume: number) => void;
@@ -52,7 +51,7 @@ interface VideoPlayerControlsProps {
   onPlayPrev: () => void;
   onSkipIntro: () => void;
   onSelectAudioTrack: (trackId: string) => void;
-  onSelectSubtitle: (lang: string | 'off') => void; // New prop
+  onSelectSubtitle: (lang: string | 'off') => void;
   isNextUpActive: boolean;
   nextUpCountdown: number;
   onCancelNextUp: () => void;
@@ -87,8 +86,8 @@ export default function VideoPlayerControls({
   episodesInCurrentSeason,
   availableAudioTracks,
   selectedAudioTrackId,
-  availableSubtitleTracks, // Destructure new prop
-  selectedSubtitleLang, // Destructure new prop
+  availableSubtitleTracks,
+  selectedSubtitleLang,
   onTogglePlay,
   onSeek,
   onVolumeChange,
@@ -98,7 +97,7 @@ export default function VideoPlayerControls({
   onPlayPrev,
   onSkipIntro,
   onSelectAudioTrack,
-  onSelectSubtitle, // Destructure new prop
+  onSelectSubtitle,
   isNextUpActive,
   nextUpCountdown,
   onCancelNextUp,
@@ -115,8 +114,8 @@ export default function VideoPlayerControls({
 
   const hasEpisodes = videoData.type === 'show' && episodesInCurrentSeason.length > 0;
   const hasAudioOptions = availableAudioTracks.length > 1;
-  // Ensure subtitle tracks exist and have at least one actual track (more than just "Off")
   const hasSubtitleOptions = availableSubtitleTracks.length > 0;
+  const hasAudioOrSubtitleOptions = hasAudioOptions || hasSubtitleOptions;
 
 
   if (!isShowingControls && !isNextUpActive && !showSkipIntro) {
@@ -251,54 +250,61 @@ export default function VideoPlayerControls({
                 </Popover>
              )}
 
-             {/* Subtitles Popover */}
-              {hasSubtitleOptions && (
+             {/* Combined Audio/Subtitle Popover */}
+              {hasAudioOrSubtitleOptions && (
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-white/10">
-                            <Captions className="h-5 w-5" /> <span className="sr-only">Subtitles</span>
+                            <Languages className="h-5 w-5" /> <span className="sr-only">Audio & Subtitles</span>
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-60 bg-background/90 backdrop-blur-sm border-border text-foreground p-2" side="top" align="end">
-                        <Label className="block text-sm font-medium p-2 border-b border-border mb-1">Subtitles</Label>
-                        <RadioGroup value={selectedSubtitleLang} onValueChange={onSelectSubtitle}>
-                            <div className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer">
-                                <RadioGroupItem value="off" id="sub-off" className="border-primary text-primary ring-offset-background"/>
-                                <Label htmlFor="sub-off" className="font-normal cursor-pointer flex-1">Off</Label>
-                            </div>
-                            {availableSubtitleTracks.map((sub) => (
-                                <div key={sub.srclang} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer">
-                                    <RadioGroupItem value={sub.srclang} id={`sub-${sub.srclang}`} className="border-primary text-primary ring-offset-background"/>
-                                    <Label htmlFor={`sub-${sub.srclang}`} className="font-normal cursor-pointer flex-1">{sub.label}</Label>
-                                </div>
-                            ))}
-                        </RadioGroup>
+                    <PopoverContent className="w-64 bg-background/90 backdrop-blur-sm border-border text-foreground p-0" side="top" align="end">
+                        <Tabs defaultValue={hasAudioOptions ? "audio" : "subtitles"} className="w-full">
+                            <TabsList className="grid w-full grid-cols-2 rounded-b-none">
+                                <TabsTrigger value="audio" disabled={!hasAudioOptions} className="gap-1">
+                                    <AudioLines className="h-4 w-4"/> Audio
+                                </TabsTrigger>
+                                <TabsTrigger value="subtitles" disabled={!hasSubtitleOptions} className="gap-1">
+                                    <Captions className="h-4 w-4"/> Subtitles
+                                </TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="audio" className="p-2 mt-0">
+                                {hasAudioOptions ? (
+                                    <RadioGroup value={selectedAudioTrackId} onValueChange={onSelectAudioTrack}>
+                                        {availableAudioTracks.map((track) => (
+                                            <div key={track.id} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer">
+                                                <RadioGroupItem value={track.id} id={`audio-${track.id}`} className="border-primary text-primary ring-offset-background"/>
+                                                <Label htmlFor={`audio-${track.id}`} className="font-normal cursor-pointer flex-1">{track.label}</Label>
+                                            </div>
+                                        ))}
+                                    </RadioGroup>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground text-center py-4">No audio options available.</p>
+                                )}
+                            </TabsContent>
+                            <TabsContent value="subtitles" className="p-2 mt-0">
+                                {hasSubtitleOptions ? (
+                                     <RadioGroup value={selectedSubtitleLang} onValueChange={onSelectSubtitle}>
+                                        <div className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer">
+                                            <RadioGroupItem value="off" id="sub-off" className="border-primary text-primary ring-offset-background"/>
+                                            <Label htmlFor="sub-off" className="font-normal cursor-pointer flex-1">Off</Label>
+                                        </div>
+                                        {availableSubtitleTracks.map((sub) => (
+                                            <div key={sub.srclang} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer">
+                                                <RadioGroupItem value={sub.srclang} id={`sub-${sub.srclang}`} className="border-primary text-primary ring-offset-background"/>
+                                                <Label htmlFor={`sub-${sub.srclang}`} className="font-normal cursor-pointer flex-1">{sub.label}</Label>
+                                            </div>
+                                        ))}
+                                    </RadioGroup>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground text-center py-4">No subtitle options available.</p>
+                                )}
+                            </TabsContent>
+                        </Tabs>
                     </PopoverContent>
                 </Popover>
               )}
 
-
-             {/* Audio Popover (Only if options exist) */}
-             {hasAudioOptions && (
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-white/10">
-                            <AudioLines className="h-5 w-5" /> <span className="sr-only">Audio</span>
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-60 bg-background/90 backdrop-blur-sm border-border text-foreground p-2" side="top" align="end">
-                         <Label className="block text-sm font-medium p-2 border-b border-border mb-1">Audio Track</Label>
-                        <RadioGroup value={selectedAudioTrackId} onValueChange={onSelectAudioTrack}>
-                            {availableAudioTracks.map((track) => (
-                                <div key={track.id} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer">
-                                    <RadioGroupItem value={track.id} id={`audio-${track.id}`} className="border-primary text-primary ring-offset-background"/>
-                                    <Label htmlFor={`audio-${track.id}`} className="font-normal cursor-pointer flex-1">{track.label}</Label>
-                                </div>
-                            ))}
-                        </RadioGroup>
-                    </PopoverContent>
-                </Popover>
-             )}
 
             {/* Keep Fullscreen Button */}
             <Button variant="ghost" size="icon" onClick={onToggleFullscreen} className="text-white hover:text-white hover:bg-white/10">
