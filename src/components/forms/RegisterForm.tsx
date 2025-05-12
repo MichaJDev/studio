@@ -81,7 +81,7 @@ export default function RegisterForm() {
           <UserPlus className="mr-3 h-7 w-7 text-primary" /> Create Account
         </CardTitle>
         <CardDescription>
-          Register for StreamVerse using your invite code.
+          Register for PrismmTv using your invite code. {/* Changed from StreamVerse */}
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>

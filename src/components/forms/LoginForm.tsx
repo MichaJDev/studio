@@ -52,7 +52,7 @@ export default function LoginForm() {
           <LogIn className="mr-3 h-7 w-7 text-primary" /> Log In
         </CardTitle>
         <CardDescription>
-          Enter your credentials to access your StreamVerse account.
+          Enter your credentials to access your PrismmTv account. {/* Changed from StreamVerse */}
           <br />
           <span className="text-xs text-muted-foreground">
             (Demo login: admin@example.com / adminpassword OR user@example.com / userpassword)
@@ -114,4 +114,3 @@ export default function LoginForm() {
     </Card>
   );
 }
-

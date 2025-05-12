@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'StreamVerse',
-  description: 'Your personal media streaming server.',
+  title: 'PrismmTv', // Changed from StreamVerse
+  description: 'Your personal media streaming server.', // Kept description generic
 };
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark">{/* Enforce dark theme */}
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}>
         <AuthProvider>
           <VideoProvider>

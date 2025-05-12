@@ -32,17 +32,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useLocalStorage<User[]>('streamverse-users', [
+  // --- Use 'prismmtv' prefix for local storage keys ---
+  const [users, setUsers] = useLocalStorage<User[]>('prismmtv-users', [
      { id: 'admin-123', email: ADMIN_EMAIL, role: 'admin', name: 'Admin User', password: ADMIN_PASSWORD, inviteCodeUsed: 'ADMIN_DEFAULT_CODE', lastLogin: new Date(Date.now() - 86400000).toISOString(), lastWatchedVideoId: null },
      { id: 'user-456', email: USER_EMAIL, role: 'user', name: 'Regular User', password: USER_PASSWORD, inviteCodeUsed: 'USER_WELCOME_CODE', lastLogin: new Date(Date.now() - 86400000 * 2).toISOString(), lastWatchedVideoId: 'movie-sim-1' },
   ]);
-  const [currentUser, setCurrentUser] = useLocalStorage<User | null>('streamverse-current-user', null);
-  const [inviteCodes, setInviteCodes] = useLocalStorage<InviteCodeConfig[]>('streamverse-invite-codes', [
+  const [currentUser, setCurrentUser] = useLocalStorage<User | null>('prismmtv-current-user', null);
+  const [inviteCodes, setInviteCodes] = useLocalStorage<InviteCodeConfig[]>('prismmtv-invite-codes', [
     // Initial default invite codes
     { code: 'ADMIN_DEFAULT_CODE', description: 'Default code for initial admin', maxUses: 1, currentUses: 1, createdAt: new Date().toISOString(), isEnabled: true },
     { code: 'USER_WELCOME_CODE', description: 'Default code for initial user', maxUses: 1, currentUses: 1, createdAt: new Date().toISOString(), isEnabled: true },
-    { code: 'STREAMVERSE_INVITE', description: 'General public invite', maxUses: 0, currentUses: 0, createdAt: new Date().toISOString(), isEnabled: true }, // 0 maxUses = infinite
+    { code: 'PRISMMTV_INVITE', description: 'General public invite', maxUses: 0, currentUses: 0, createdAt: new Date().toISOString(), isEnabled: true }, // 0 maxUses = infinite // Renamed PRISMMTV_INVITE
   ]);
+  // -----------------------------------------------------
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
@@ -66,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null;
     }
     try {
-      const item = window.localStorage.getItem('streamverse-current-user');
+      const item = window.localStorage.getItem('prismmtv-current-user'); // Use correct key
       return item ? (JSON.parse(item) as User) : null;
     } catch (error) {
       console.warn('Error reading current user from localStorage:', error);
@@ -86,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updatedUsers = [...users];
       updatedUsers[userIndex] = userToLogin;
       setUsers(updatedUsers);
-      setCurrentUser(userToLogin);
+      setCurrentUser(userToLogin); // This uses the hook which writes to 'prismmtv-current-user'
       setIsLoading(false);
       router.push('/');
       toast({ title: "Login Successful", description: `Welcome back, ${userToLogin.name || userToLogin.email}!` });
@@ -138,19 +140,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         lastWatchedVideoId: null,
     };
 
-    setUsers([...users, newUser]);
+    setUsers([...users, newUser]); // Uses hook writing to 'prismmtv-users'
 
     // Update invite code usage
     const updatedInviteCodes = [...inviteCodes];
     updatedInviteCodes[codeIndex] = { ...inviteConfig, currentUses: inviteConfig.currentUses + 1 };
-    setInviteCodes(updatedInviteCodes);
+    setInviteCodes(updatedInviteCodes); // Uses hook writing to 'prismmtv-invite-codes'
 
     setIsLoading(false);
     return { success: true };
   };
 
   const updateUser = (userId: string, updatedFields: Partial<User>) => {
-    setUsers(prevUsers => {
+    setUsers(prevUsers => { // Uses hook writing to 'prismmtv-users'
         const userIndex = prevUsers.findIndex(u => u.id === userId);
         if (userIndex === -1) return prevUsers;
 
@@ -159,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updatedUsers[userIndex] = updatedUser;
 
         if (currentUser && currentUser.id === userId) {
-            setCurrentUser(updatedUser);
+            setCurrentUser(updatedUser); // Uses hook writing to 'prismmtv-current-user'
         }
         return updatedUsers;
     });
@@ -181,13 +183,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
       isEnabled: true,
     };
-    setInviteCodes(prev => [...prev, newInviteCode]);
+    setInviteCodes(prev => [...prev, newInviteCode]); // Uses hook writing to 'prismmtv-invite-codes'
     toast({ title: "Invite Code Created", description: `Code "${code}" has been added.` });
     return { success: true };
   };
 
   const toggleInviteCodeStatus = (code: string) => {
-    setInviteCodes(prev =>
+    setInviteCodes(prev => // Uses hook writing to 'prismmtv-invite-codes'
       prev.map(ic =>
         ic.code === code ? { ...ic, isEnabled: !ic.isEnabled } : ic
       )
@@ -197,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    setCurrentUser(null);
+    setCurrentUser(null); // Uses hook writing to 'prismmtv-current-user'
     router.push('/login');
     toast({ title: "Logged Out", description: "You have been successfully logged out." });
   };

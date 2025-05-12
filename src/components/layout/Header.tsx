@@ -55,7 +55,7 @@ export default function Header() {
           <Link href="/" className="flex items-center space-x-2">
             <Film className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold tracking-tight text-foreground">
-              StreamVerse
+              PrismmTv {/* Changed from StreamVerse */}
             </span>
           </Link>
           <div className="flex items-center space-x-2">
@@ -82,7 +82,7 @@ export default function Header() {
                 ))}
                 </nav>
             )}
-           
+
 
             {isLoading ? (
               <div className="h-9 w-20 animate-pulse rounded-md bg-muted"></div>

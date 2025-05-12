@@ -22,7 +22,9 @@ const VideoContext = createContext<VideoContextType | undefined>(undefined);
 const initialVideos = scanMediaFiles();
 
 export function VideoProvider({ children }: { children: ReactNode }) {
-  const [videos, setVideos] = useLocalStorage<Video[]>('streamverse-videos', initialVideos);
+  // --- Use 'prismmtv' prefix for local storage key ---
+  const [videos, setVideos] = useLocalStorage<Video[]>('prismmtv-videos', initialVideos);
+  // -------------------------------------------------
 
   const addVideo = (video: Video) => {
     // Ensure new uploads are marked correctly and get a timestamp
@@ -31,7 +33,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
       type: 'upload',
       uploadedAt: new Date().toISOString(),
     };
-    setVideos((prevVideos) => [newUpload, ...prevVideos]);
+    setVideos((prevVideos) => [newUpload, ...prevVideos]); // Uses hook writing to 'prismmtv-videos'
   };
 
   const getVideoById = (id: string): Video | undefined => {
@@ -64,7 +66,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
   const rescanMedia = useCallback(() => {
     console.log("Rescanning media files...");
     const scannedVideos = scanMediaFiles(); // Call the scanner function again
-    setVideos(scannedVideos); // Update the state with the new scan results
+    setVideos(scannedVideos); // Update the state with the new scan results // Uses hook writing to 'prismmtv-videos'
     console.log(`Rescan complete. Found ${scannedVideos.length} items.`);
     return scannedVideos.length; // Return the count of found items
   }, [setVideos]);

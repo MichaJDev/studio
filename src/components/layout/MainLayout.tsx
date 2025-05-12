@@ -22,7 +22,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </main>
       {!isWatchPage && (
         <footer className="py-6 text-center text-muted-foreground text-sm">
-          © {new Date().getFullYear()} StreamVerse. All rights reserved.
+          © {new Date().getFullYear()} PrismmTv. All rights reserved. {/* Changed from StreamVerse */}
         </footer>
       )}
     </div>
