@@ -1,0 +1,2 @@
+This directory is intended for subtitle files (e.g., .srt) that correspond to media files in `media_files`.
+The application simulates finding matching subtitles here based on filename. Example: Awesome.Movie.2023.1080p.srt

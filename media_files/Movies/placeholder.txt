@@ -1,0 +1,2 @@
+This directory is intended for movie files (e.g., .mkv, .mp4).
+The application simulates scanning this directory. Add actual media files here for local testing if setting up a proper file server. Example: Awesome.Movie.2023.1080p.mkv
