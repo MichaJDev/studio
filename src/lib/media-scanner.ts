@@ -1,6 +1,23 @@
 // src/lib/media-scanner.ts
 import type { Video } from '@/types';
 
+function parseDurationToSeconds(durationStr?: string): number | undefined {
+  if (!durationStr || durationStr === "N/A") return undefined;
+
+  let totalSeconds = 0;
+  const hourMatch = durationStr.match(/(\d+)h/);
+  const minuteMatch = durationStr.match(/(\d+)m/);
+  // Assuming 's' for seconds is less common for typical video durations, but can be added if needed.
+  // const secondMatch = durationStr.match(/(\d+)s/);
+
+  if (hourMatch) totalSeconds += parseInt(hourMatch[1], 10) * 3600;
+  if (minuteMatch) totalSeconds += parseInt(minuteMatch[1], 10) * 60;
+  // if (secondMatch) totalSeconds += parseInt(secondMatch[1], 10);
+  
+  return totalSeconds > 0 ? totalSeconds : undefined;
+}
+
+
 /**
  * Simulates scanning media files and extracting metadata.
  * In a real application, this would involve using fs to read directories,
@@ -22,6 +39,7 @@ export function scanMediaFiles(): Video[] {
       subtitleSrc: '/Subtitle_files/Awesome.Movie.2023.1080p.srt', // Placeholder path
       uploadedAt: new Date(now - 86400000 * 2).toISOString(), // Simulate scan/add time
       duration: "1h 55m",
+      durationInSeconds: parseDurationToSeconds("1h 55m"),
       dataAiHint: "action movie",
       type: 'movie',
       quality: '1080p',
@@ -36,6 +54,7 @@ export function scanMediaFiles(): Video[] {
       videoSrc: '/media_files/Movies/Another.Great.Film.(2021).720p.mp4', // Placeholder path
       uploadedAt: new Date(now - 86400000 * 10).toISOString(),
       duration: "2h 10m",
+      durationInSeconds: parseDurationToSeconds("2h 10m"),
       dataAiHint: "drama film",
       type: 'movie',
       quality: '720p',
@@ -52,6 +71,8 @@ export function scanMediaFiles(): Video[] {
       videoSrc: '/media_files/Shows/Cool.Show.S01E01.Pilot.Episode.720p.mp4', // Placeholder path
       uploadedAt: new Date(now - 86400000 * 5).toISOString(),
       duration: "45m",
+      durationInSeconds: parseDurationToSeconds("45m"),
+      introEndTimeInSeconds: 85, // 1 minute 25 seconds
       dataAiHint: "tv series",
       type: 'show',
       quality: '720p',
@@ -70,6 +91,8 @@ export function scanMediaFiles(): Video[] {
       subtitleSrc: '/Subtitle_files/Cool.Show.S01E02.The.Next.Step.HDTV.srt',
       uploadedAt: new Date(now - 86400000 * 4).toISOString(),
       duration: "48m",
+      durationInSeconds: parseDurationToSeconds("48m"),
+      introEndTimeInSeconds: 60, // 1 minute
       dataAiHint: "sci-fi show",
       type: 'show',
       quality: 'HDTV', // Example quality
@@ -82,15 +105,36 @@ export function scanMediaFiles(): Video[] {
       originalFilename: 'Cool.Show.S01E03.mp4',
       title: 'Episode 3', // Default if no name found
       showName: 'Cool Show',
-      description: 'Episode three unfolds.',
+      description: 'Episode three unfolds. This is the last episode of season 1 for Cool Show.',
       thumbnailUrl: 'https://picsum.photos/400/225?random=s1e3',
       videoSrc: '/media_files/Shows/Cool.Show.S01E03.mp4', // Placeholder path
       uploadedAt: new Date(now - 86400000 * 3).toISOString(),
       duration: "42m",
+      durationInSeconds: parseDurationToSeconds("42m"),
+      // No intro skip for this one
       dataAiHint: "mystery series",
       type: 'show',
       season: 1,
       episode: 3,
+    },
+    {
+      id: 'show-sim-2-s01e01',
+      originalFilename: 'Another.Series.S01E01.The.Beginning.1080p.mkv',
+      title: 'The Beginning',
+      showName: 'Another Series',
+      description: 'The first episode of Another Series.',
+      thumbnailUrl: 'https://picsum.photos/400/225?random=s2e1',
+      videoSrc: '/media_files/Shows/Another.Series.S01E01.The.Beginning.1080p.mkv',
+      uploadedAt: new Date(now - 86400000 * 7).toISOString(),
+      duration: "55m",
+      durationInSeconds: parseDurationToSeconds("55m"),
+      introEndTimeInSeconds: 70,
+      dataAiHint: "drama series",
+      type: 'show',
+      quality: '1080p',
+      season: 1,
+      episode: 1,
+      episodeTitle: 'The Beginning',
     },
     // Include original sample videos marked as 'upload' type for variety
     {
@@ -101,6 +145,7 @@ export function scanMediaFiles(): Video[] {
       videoSrc: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4', // Using remote URL for uploads
       uploadedAt: new Date(now - 86400000 * 15).toISOString(), // Older date
       duration: "7m",
+      durationInSeconds: parseDurationToSeconds("7m"),
       dataAiHint: "ocean documentary",
       type: 'upload', // Mark as uploaded
     },
@@ -112,6 +157,7 @@ export function scanMediaFiles(): Video[] {
       videoSrc: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
       uploadedAt: new Date(now - 86400000 * 12).toISOString(), // Older date
       duration: "5m",
+      durationInSeconds: parseDurationToSeconds("5m"),
       dataAiHint: "mountain landscape",
       type: 'upload',
     },
@@ -123,6 +169,7 @@ export function scanMediaFiles(): Video[] {
        videoSrc: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
        uploadedAt: new Date(now - 86400000 * 11).toISOString(), // Older date
        duration: "12m",
+       durationInSeconds: parseDurationToSeconds("12m"),
        dataAiHint: "city night",
        type: 'upload',
     },
@@ -134,6 +181,7 @@ export function scanMediaFiles(): Video[] {
        videoSrc: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
        uploadedAt: new Date(now - 86400000 * 18).toISOString(), // Older date
        duration: "9m",
+       durationInSeconds: parseDurationToSeconds("9m"),
        dataAiHint: "forest nature",
        type: 'upload',
      },
@@ -145,6 +193,7 @@ export function scanMediaFiles(): Video[] {
        videoSrc: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
        uploadedAt: new Date(now - 86400000 * 1).toISOString(), // Uploaded yesterday
        duration: "15m",
+       durationInSeconds: parseDurationToSeconds("15m"),
        dataAiHint: "desert travel",
        type: 'upload',
      },
@@ -213,3 +262,4 @@ function parseFilename(filename: string): ParsedMeta {
 // Note: The actual implementation of parseFilename and beautifyTitle would need
 // to be much more robust to handle various filename conventions.
 // The simulation uses pre-filled data based on what a parser *might* extract.
+

@@ -6,10 +6,10 @@ import { useEffect, useState } from 'react';
 import { useVideoContext } from '@/contexts/VideoContext';
 import VideoPlayer from '@/components/video/VideoPlayer';
 import type { Video } from '@/types';
-import { ArrowLeft } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react'; // Changed from ArrowLeft
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react'; // Import Loader
+import { Loader2 } from 'lucide-react'; 
 
 interface WatchPageProps {
   params: { videoId: string };
@@ -17,19 +17,17 @@ interface WatchPageProps {
 
 export default function WatchPage({ params }: WatchPageProps) {
   const { getVideoById } = useVideoContext();
-  const [video, setVideo] = useState<Video | null | undefined>(undefined); // Initial state undefined for loading
+  const [video, setVideo] = useState<Video | null | undefined>(undefined); 
 
   useEffect(() => {
     const foundVideo = getVideoById(params.videoId);
-    // Use timeout to prevent flash of "Not Found" if video loads quickly
     const timer = setTimeout(() => {
-       setVideo(foundVideo || null); // Set to null if not found after delay
-    }, 100); // Small delay
+       setVideo(foundVideo || null); 
+    }, 100); 
     
-    return () => clearTimeout(timer); // Cleanup timer on unmount
+    return () => clearTimeout(timer); 
   }, [params.videoId, getVideoById]);
 
-  // Loading State
   if (video === undefined) {
     return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black text-foreground">
@@ -39,7 +37,6 @@ export default function WatchPage({ params }: WatchPageProps) {
     );
   }
 
-  // Not Found State
   if (video === null) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background text-foreground">
@@ -48,7 +45,7 @@ export default function WatchPage({ params }: WatchPageProps) {
           <p className="text-muted-foreground mb-6">The video you are looking for does not exist or has been removed.</p>
           <Button asChild variant="outline">
             <Link href="/">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Go Back to Home
+              <ChevronLeft className="mr-2 h-4 w-4" /> Go Back to Home
             </Link>
           </Button>
         </div>
@@ -56,30 +53,27 @@ export default function WatchPage({ params }: WatchPageProps) {
     );
   }
 
-  // Video Found - Full Screen Player
   return (
-    <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
-       {/* Back Button - Positioned top-left */}
+    <div className="fixed inset-0 z-50 bg-black flex items-center justify-center group/watchpage">
        <Button
           variant="ghost"
           size="icon"
           asChild
-          className="absolute top-4 left-4 z-[60] text-white bg-black/30 hover:bg-black/50 hover:text-white rounded-full"
+          className="absolute top-4 left-4 z-[60] text-white bg-black/30 hover:bg-black/50 hover:text-white rounded-full opacity-0 group-hover/watchpage:opacity-100 transition-opacity duration-300"
           aria-label="Go back"
         >
           <Link href="/">
-            <ArrowLeft className="h-6 w-6" />
+            <ChevronLeft className="h-6 w-6" />
           </Link>
         </Button>
 
-       {/* Video Player taking up available space */}
        <div className="w-full h-full">
            <VideoPlayer
-             src={video.videoSrc}
-             title={video.title}
-             subtitleSrc={video.subtitleSrc} // Pass subtitle source
+             video={video} // Pass the full video object
+             autoplay={true}
            />
        </div>
     </div>
   );
 }
+

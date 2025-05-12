@@ -21,6 +21,10 @@ export interface Video {
   season?: number; // e.g., 1
   episode?: number; // e.g., 1
   episodeTitle?: string; // e.g., "Pilot Episode"
+
+  // Player enhancement fields
+  introEndTimeInSeconds?: number; // e.g., 85 (for 1m 25s intro)
+  durationInSeconds?: number; // e.g., 2700 (for 45m duration)
 }
 
 export interface User {
@@ -30,3 +34,4 @@ export interface User {
   name?: string;
   password?: string; // **INSECURE**: Only for local storage demo. Do NOT store plain text passwords in real applications.
 }
+
