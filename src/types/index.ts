@@ -15,4 +15,5 @@ export interface User {
   email: string;
   role: 'user' | 'admin';
   name?: string;
+  password?: string; // **INSECURE**: Only for local storage demo. Do NOT store plain text passwords in real applications.
 }

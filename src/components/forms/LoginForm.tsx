@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { LogIn, Loader2, AlertCircle } from 'lucide-react';
+import { LogIn, Loader2, AlertCircle, UserPlus } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Link from 'next/link';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -26,26 +27,18 @@ export default function LoginForm() {
 
     try {
       const success = await login(email, password);
-      if (success) {
-        toast({
-          title: "Login Successful",
-          description: "Welcome back!",
-        });
-        // Router push is handled in AuthContext
-      } else {
+      if (!success) {
         setError("Invalid email or password. Please try again.");
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: "Invalid email or password.",
-        });
+        // Toast is shown in context now on error
       }
+      // Success case is handled by context (redirect)
     } catch (err: any) {
-      setError(err.message || "An unexpected error occurred during login.");
+      const errorMessage = err.message || "An unexpected error occurred during login.";
+      setError(errorMessage);
       toast({
         variant: "destructive",
         title: "Login Error",
-        description: err.message || "An unexpected error occurred.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -62,7 +55,7 @@ export default function LoginForm() {
           Enter your credentials to access your StreamVerse account.
           <br />
           <span className="text-xs text-muted-foreground">
-            (Demo: admin@example.com / adminpassword OR user@example.com / userpassword)
+            (Demo login: admin@example.com / adminpassword OR user@example.com / userpassword)
           </span>
         </CardDescription>
       </CardHeader>
@@ -84,6 +77,7 @@ export default function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              aria-label="Email Address"
             />
           </div>
           <div className="space-y-2">
@@ -94,10 +88,11 @@ export default function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              aria-label="Password"
             />
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex flex-col gap-4">
           <Button type="submit" className="w-full text-lg py-6" disabled={isLoading}>
             {isLoading ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -106,8 +101,17 @@ export default function LoginForm() {
             )}
             {isLoading ? 'Logging In...' : 'Log In'}
           </Button>
+          <p className="text-sm text-center text-muted-foreground">
+            Don't have an account?{' '}
+            <Button variant="link" asChild className="p-0 h-auto text-primary font-semibold">
+              <Link href="/register">
+                Register Now <UserPlus className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </p>
         </CardFooter>
       </form>
     </Card>
   );
 }
+
