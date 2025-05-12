@@ -2,31 +2,38 @@
 // src/app/watch/[videoId]/page.tsx
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useParams } from 'next/navigation'; // Import useParams
 import { useVideoContext } from '@/contexts/VideoContext';
 import VideoPlayer from '@/components/video/VideoPlayer';
 import type { Video } from '@/types';
-import { ChevronLeft } from 'lucide-react'; // Changed from ArrowLeft
+import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react'; 
+import { Loader2 } from 'lucide-react';
 
-interface WatchPageProps {
-  params: { videoId: string };
-}
+// Removed the params prop from the component definition
+export default function WatchPage() {
+  const params = useParams<{ videoId: string }>(); // Use useParams hook
+  const videoId = params?.videoId; // Extract videoId
 
-export default function WatchPage({ params }: WatchPageProps) {
   const { getVideoById } = useVideoContext();
-  const [video, setVideo] = useState<Video | null | undefined>(undefined); 
+  const [video, setVideo] = useState<Video | null | undefined>(undefined);
+
+  // Memoize the video lookup based on videoId
+  const fetchedVideo = useMemo(() => {
+    if (!videoId) return undefined;
+    return getVideoById(videoId);
+  }, [videoId, getVideoById]);
 
   useEffect(() => {
-    const foundVideo = getVideoById(params.videoId);
+    // Simulate loading delay or async fetch
     const timer = setTimeout(() => {
-       setVideo(foundVideo || null); 
-    }, 100); 
-    
-    return () => clearTimeout(timer); 
-  }, [params.videoId, getVideoById]);
+      setVideo(fetchedVideo !== undefined ? fetchedVideo : null);
+    }, 100); // Short delay to simulate loading
+
+    return () => clearTimeout(timer);
+  }, [fetchedVideo]); // Depend on the memoized fetchedVideo
 
   if (video === undefined) {
     return (
@@ -76,4 +83,3 @@ export default function WatchPage({ params }: WatchPageProps) {
     </div>
   );
 }
-
