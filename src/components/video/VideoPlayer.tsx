@@ -4,7 +4,7 @@
 import type { Video } from '@/types';
 import { useVideoContext } from '@/contexts/VideoContext';
 import { useRouter } from 'next/navigation';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import VideoPlayerControls from './VideoPlayerControls';
 
 interface VideoPlayerProps {
