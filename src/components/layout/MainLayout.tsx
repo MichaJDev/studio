@@ -1,4 +1,3 @@
-
 // src/components/layout/MainLayout.tsx
 "use client"; // Make it a client component to use usePathname
 
@@ -17,11 +16,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col">
       {!isWatchPage && <Header />}
-      <main className={`flex-1 ${!isWatchPage ? 'container max-w-screen-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8' : ''}`}>
+      {/* Removed container classes from main element */}
+      <main className={`flex-1 ${!isWatchPage ? '' : ''}`}>
         {children}
       </main>
       {!isWatchPage && (
-        <footer className="py-6 text-center text-muted-foreground text-sm">
+        <footer className="py-6 text-center text-muted-foreground text-sm border-t border-border/40 mt-12"> {/* Added border and margin */}
           © {new Date().getFullYear()} PrismmTv. All rights reserved. {/* Changed from StreamVerse */}
         </footer>
       )}
