@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react'; // Import useState
 import Link from 'next/link';
-import { Sparkles, LogIn, LogOut, UserCircle, ShieldCheck } from 'lucide-react'; // Changed Gem to Sparkles
+import { Diamond, LogIn, LogOut, UserCircle, ShieldCheck } from 'lucide-react'; // Changed Sparkles to Diamond
 import { Button } from '@/components/ui/button';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -52,7 +52,7 @@ export default function Header() {
       <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
-            <Sparkles className="h-8 w-8 text-primary" /> {/* Changed from Gem to Sparkles */}
+            <Diamond className="h-8 w-8 text-primary" /> {/* Changed from Sparkles to Diamond */}
             <span className="text-2xl font-bold tracking-tight text-foreground">
               PrismmTv {/* Changed from StreamVerse */}
             </span>
@@ -121,12 +121,8 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button asChild variant="outline" size="sm">
-                <Link href="/login">
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Login
-                </Link>
-              </Button>
+              // Login button moved to LandingPage component, removed from here
+              null
             )}
           </div>
         </div>
@@ -138,4 +134,3 @@ export default function Header() {
     </>
   );
 }
-
