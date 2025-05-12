@@ -1,4 +1,3 @@
-
 // src/types/index.ts
 
 export interface AudioTrackInfo {
@@ -7,13 +6,21 @@ export interface AudioTrackInfo {
   label: string; // e.g., 'English Stereo', 'Spanish 5.1'
 }
 
+export interface SubtitleTrackInfo {
+  srclang: string; // e.g., 'en'
+  label: string; // e.g., 'English'
+  src: string; // Path or URL to subtitle file
+  isDefault?: boolean; // Whether this should be the default selected subtitle
+}
+
 export interface Video {
   id: string;
   title: string; // Beautified title
   description: string;
   thumbnailUrl: string; // URL to an image
   videoSrc: string; // Path or URL to video file
-  subtitleSrc?: string; // Path or URL to subtitle file
+  subtitleSrc?: string; // **DEPRECATED** - Use subtitleTracks instead. Kept for backward compatibility during transition.
+  subtitleTracks?: SubtitleTrackInfo[]; // Array of available subtitle tracks
   uploadedAt?: string; // Keep for sorting uploads and identifying recent items
   duration?: string; // e.g., "1h 23m" or "45m"
   dataAiHint?: string; // for placeholder images

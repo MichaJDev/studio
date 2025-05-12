@@ -1,5 +1,5 @@
 // src/lib/media-scanner.ts
-import type { Video, AudioTrackInfo } from '@/types';
+import type { Video, AudioTrackInfo, SubtitleTrackInfo } from '@/types';
 
 function parseDurationToSeconds(durationStr?: string): number | undefined {
   if (!durationStr || durationStr === "N/A") return undefined;
@@ -22,7 +22,7 @@ function parseDurationToSeconds(durationStr?: string): number | undefined {
  * Simulates scanning media files and extracting metadata.
  * In a real application, this would involve using fs to read directories,
  * complex regex parsing for filenames, and potentially external API calls for metadata.
- * This simulation now includes dummy audio track data.
+ * This simulation now includes dummy audio track data and subtitle track data.
  */
 export function scanMediaFiles(): Video[] {
   const now = Date.now();
@@ -32,10 +32,9 @@ export function scanMediaFiles(): Video[] {
       id: 'movie-sim-1',
       originalFilename: 'Awesome.Movie.2023.1080p.mkv',
       title: 'Awesome Movie',
-      description: 'A simulated awesome movie from the year 2023, now with multiple audio tracks.',
+      description: 'A simulated awesome movie from the year 2023, now with multiple audio tracks and subtitles.',
       thumbnailUrl: 'https://picsum.photos/400/225?random=m1',
       videoSrc: '/media_files/Movies/Awesome.Movie.2023.1080p.mkv', // Placeholder path
-      subtitleSrc: '/Subtitle_files/Awesome.Movie.2023.1080p.srt', // Placeholder path
       uploadedAt: new Date(now - 86400000 * 2).toISOString(), // Simulate scan/add time
       duration: "1h 55m",
       durationInSeconds: parseDurationToSeconds("1h 55m"),
@@ -43,13 +42,17 @@ export function scanMediaFiles(): Video[] {
       type: 'movie',
       quality: '1080p',
       year: 2023,
-      // --- Simulated Audio Tracks ---
       audioTracks: [
-        { id: '0', language: 'en', label: 'English (Stereo)' }, // Assume ID '0' is the first track
-        { id: '1', language: 'es', label: 'Español (5.1)' },   // Assume ID '1' is the second track
+        { id: '0', language: 'en', label: 'English (Stereo)' },
+        { id: '1', language: 'es', label: 'Español (5.1)' },
         { id: '2', language: 'en', label: 'English (Commentary)' },
       ],
-      // -----------------------------
+      // --- Simulated Subtitle Tracks ---
+      subtitleTracks: [
+         { srclang: 'en', label: 'English', src: '/Subtitle_files/Awesome.Movie.2023.1080p.en.srt', isDefault: true }, // English default
+         { srclang: 'es', label: 'Español', src: '/Subtitle_files/Awesome.Movie.2023.1080p.es.srt' },
+      ],
+      // ---------------------------------
     },
     {
       id: 'movie-sim-2',
@@ -65,11 +68,12 @@ export function scanMediaFiles(): Video[] {
       type: 'movie',
       quality: '720p',
       year: 2021,
-       // --- Simulated Audio Tracks (Only one) ---
       audioTracks: [
         { id: '0', language: 'en', label: 'English' },
       ],
-      // -----------------------------
+      // --- No subtitles for this one ---
+      subtitleTracks: [],
+      // ---------------------------------
     },
     // Shows
     {
@@ -90,12 +94,16 @@ export function scanMediaFiles(): Video[] {
       season: 1,
       episode: 1,
       episodeTitle: 'Pilot Episode',
-      // --- Simulated Audio Tracks ---
       audioTracks: [
         { id: '0', language: 'en', label: 'English' },
         { id: '1', language: 'fr', label: 'Français' },
       ],
-      // -----------------------------
+       // --- Simulated Subtitle Tracks ---
+       subtitleTracks: [
+         { srclang: 'en', label: 'English', src: '/Subtitle_files/Cool.Show.S01E01.Pilot.Episode.en.srt', isDefault: true },
+         { srclang: 'fr', label: 'Français', src: '/Subtitle_files/Cool.Show.S01E01.Pilot.Episode.fr.srt' },
+       ],
+       // ---------------------------------
     },
     {
       id: 'show-sim-1-s01e02',
@@ -105,7 +113,6 @@ export function scanMediaFiles(): Video[] {
       description: 'The adventure continues in the second episode.',
       thumbnailUrl: 'https://picsum.photos/400/225?random=s1e2',
       videoSrc: '/media_files/Shows/Cool.Show.S01E02.The.Next.Step.HDTV.mkv', // Placeholder path
-      subtitleSrc: '/Subtitle_files/Cool.Show.S01E02.The.Next.Step.HDTV.srt',
       uploadedAt: new Date(now - 86400000 * 4).toISOString(),
       duration: "48m",
       durationInSeconds: parseDurationToSeconds("48m"),
@@ -116,12 +123,15 @@ export function scanMediaFiles(): Video[] {
       season: 1,
       episode: 2,
       episodeTitle: 'The Next Step',
-      // --- Simulated Audio Tracks ---
       audioTracks: [
         { id: '0', language: 'en', label: 'English' },
         { id: '1', language: 'fr', label: 'Français' },
       ],
-      // -----------------------------
+      // --- Simulated Subtitle Tracks ---
+      subtitleTracks: [
+        { srclang: 'en', label: 'English', src: '/Subtitle_files/Cool.Show.S01E02.The.Next.Step.HDTV.srt', isDefault: true }, // Assume the main SRT is English
+      ],
+      // ---------------------------------
     },
      {
       id: 'show-sim-1-s01e03',
@@ -134,7 +144,6 @@ export function scanMediaFiles(): Video[] {
       uploadedAt: new Date(now - 86400000 * 3).toISOString(),
       duration: "42m",
       durationInSeconds: parseDurationToSeconds("42m"),
-      // No intro skip for this one
       dataAiHint: "mystery series",
       type: 'show',
       season: 1,
@@ -142,6 +151,7 @@ export function scanMediaFiles(): Video[] {
       audioTracks: [ // Default English only
          { id: '0', language: 'en', label: 'English' },
       ],
+      subtitleTracks: [], // No subtitles for this one
     },
     {
       id: 'show-sim-2-s01e01',
@@ -161,23 +171,27 @@ export function scanMediaFiles(): Video[] {
       season: 1,
       episode: 1,
       episodeTitle: 'The Beginning',
-       audioTracks: [ // Default English only
+       audioTracks: [
          { id: '0', language: 'en', label: 'English' },
       ],
+       subtitleTracks: [
+         { srclang: 'en', label: 'English', src: '/Subtitle_files/Another.Series.S01E01.The.Beginning.1080p.srt', isDefault: true },
+       ],
     },
-    // Include original sample videos marked as 'upload' type for variety
-    // Uploaded videos won't typically have multiple tracks simulated unless explicitly added
+    // Uploaded videos generally won't have structured audio/subtitles unless manually added or inferred
     {
       id: 'sample-1',
       title: 'Ocean Wonders',
       description: 'A beautiful journey through the deep blue ocean, showcasing diverse marine life and stunning coral reefs.',
       thumbnailUrl: 'https://picsum.photos/400/225?random=1',
-      videoSrc: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4', // Using remote URL for uploads
-      uploadedAt: new Date(now - 86400000 * 15).toISOString(), // Older date
+      videoSrc: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
+      uploadedAt: new Date(now - 86400000 * 15).toISOString(),
       duration: "7m",
       durationInSeconds: parseDurationToSeconds("7m"),
       dataAiHint: "ocean documentary",
-      type: 'upload', // Mark as uploaded
+      type: 'upload',
+      audioTracks: [{ id: '0', language: 'und', label: 'Unknown' }], // Uploads might have unknown tracks
+      subtitleTracks: [],
     },
     {
       id: 'sample-2',
@@ -185,11 +199,13 @@ export function scanMediaFiles(): Video[] {
       description: 'Explore the breathtaking views from high peaks, with sweeping panoramas and rugged landscapes.',
       thumbnailUrl: 'https://picsum.photos/400/225?random=2',
       videoSrc: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-      uploadedAt: new Date(now - 86400000 * 12).toISOString(), // Older date
+      uploadedAt: new Date(now - 86400000 * 12).toISOString(),
       duration: "5m",
       durationInSeconds: parseDurationToSeconds("5m"),
       dataAiHint: "mountain landscape",
       type: 'upload',
+      audioTracks: [{ id: '0', language: 'und', label: 'Unknown' }],
+      subtitleTracks: [],
     },
     {
        id: 'sample-3',
@@ -197,11 +213,13 @@ export function scanMediaFiles(): Video[] {
        description: 'A mesmerizing tour of a vibrant city at night, capturing the energy and glow of urban life.',
        thumbnailUrl: 'https://picsum.photos/400/225?random=3',
        videoSrc: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-       uploadedAt: new Date(now - 86400000 * 11).toISOString(), // Older date
+       uploadedAt: new Date(now - 86400000 * 11).toISOString(),
        duration: "12m",
        durationInSeconds: parseDurationToSeconds("12m"),
        dataAiHint: "city night",
        type: 'upload',
+       audioTracks: [{ id: '0', language: 'und', label: 'Unknown' }],
+       subtitleTracks: [],
     },
      {
        id: 'sample-4',
@@ -209,11 +227,13 @@ export function scanMediaFiles(): Video[] {
        description: 'A tranquil walk through an ancient forest, listening to the sounds of nature and discovering hidden gems.',
        thumbnailUrl: 'https://picsum.photos/400/225?random=4',
        videoSrc: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-       uploadedAt: new Date(now - 86400000 * 18).toISOString(), // Older date
+       uploadedAt: new Date(now - 86400000 * 18).toISOString(),
        duration: "9m",
        durationInSeconds: parseDurationToSeconds("9m"),
        dataAiHint: "forest nature",
        type: 'upload',
+       audioTracks: [{ id: '0', language: 'und', label: 'Unknown' }],
+       subtitleTracks: [],
      },
       {
        id: 'sample-5-recent',
@@ -221,11 +241,13 @@ export function scanMediaFiles(): Video[] {
        description: 'A recent simulated upload exploring vast desert landscapes.',
        thumbnailUrl: 'https://picsum.photos/400/225?random=d1',
        videoSrc: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4',
-       uploadedAt: new Date(now - 86400000 * 1).toISOString(), // Uploaded yesterday
+       uploadedAt: new Date(now - 86400000 * 1).toISOString(),
        duration: "15m",
        durationInSeconds: parseDurationToSeconds("15m"),
        dataAiHint: "desert travel",
        type: 'upload',
+       audioTracks: [{ id: '0', language: 'und', label: 'Unknown' }],
+       subtitleTracks: [],
      },
   ];
 
@@ -250,8 +272,6 @@ function beautifyTitle(filename: string): string {
   title = title.replace(/\s*S\d{2}E\d{2}\s*/gi, ' ');
   // Trim whitespace
   title = title.trim();
-  // Capitalize first letter of each word (optional, can be too aggressive)
-  // title = title.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   return title;
 }
 
@@ -264,7 +284,6 @@ interface ParsedMeta {
   episode?: number;
   episodeTitle?: string;
   showName?: string;
-  // audioTracks?: AudioTrackInfo[]; // Could potentially add audio track parsing here if tools like ffprobe are used
 }
 
 function parseFilename(filename: string): ParsedMeta {
@@ -280,24 +299,19 @@ function parseFilename(filename: string): ParsedMeta {
   if (qualityMatch) parsed.quality = qualityMatch[1].toUpperCase();
 
   // Show SxxExx
-  const showMatch = filename.match(/(.*?)[.\s](S(\d{2}))(E(\d{2}))[.\s]?(.*?)\.(mkv|mp4|avi|mov)/i); // Match common video extensions
+  const showMatch = filename.match(/(.*?)[.\s](S(\d{2}))(E(\d{2}))[.\s]?(.*?)\.(mkv|mp4|avi|mov)/i);
   if (showMatch) {
-    parsed.showName = beautifyTitle(showMatch[1]); // Title before SxxExx is show name
+    parsed.showName = beautifyTitle(showMatch[1]);
     parsed.season = parseInt(showMatch[3], 10);
     parsed.episode = parseInt(showMatch[5], 10);
-    // Try to extract episode title, otherwise default
     const potentialEpisodeTitle = showMatch[6] ? beautifyTitle(showMatch[6]) : '';
     parsed.episodeTitle = potentialEpisodeTitle || `Episode ${parsed.episode}`;
-    parsed.title = parsed.episodeTitle; // Use episode title as the main title for Video object
+    parsed.title = parsed.episodeTitle;
   }
 
-  // NOTE: Parsing audio tracks from filename is unreliable.
-  // This simulation adds audioTracks directly to the objects.
-  // A real implementation would use tools like ffprobe/mediainfo on the server.
+  // Note: Parsing audio and subtitle tracks from filenames is very complex and unreliable.
+  // A real implementation would use tools like ffprobe/mediainfo on the server side
+  // during the scanning process. This simulation adds tracks directly in the data definition.
 
   return parsed;
 }
-
-// Note: The actual implementation of parseFilename and beautifyTitle would need
-// to be much more robust to handle various filename conventions.
-// The simulation uses pre-filled data based on what a parser *might* extract.

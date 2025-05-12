@@ -1,7 +1,7 @@
 // src/components/video/VideoPlayer.tsx
 "use client";
 
-import type { Video, AudioTrackInfo } from '@/types';
+import type { Video, AudioTrackInfo, SubtitleTrackInfo } from '@/types';
 import { useVideoContext } from '@/contexts/VideoContext';
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -31,6 +31,11 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
   // Audio Track State
   const [availableAudioTracks, setAvailableAudioTracks] = useState<AudioTrackInfo[]>([]);
   const [selectedAudioTrackId, setSelectedAudioTrackId] = useState<string | undefined>(undefined);
+
+  // Subtitle Track State
+  const [availableSubtitleTracks, setAvailableSubtitleTracks] = useState<SubtitleTrackInfo[]>([]);
+  const [selectedSubtitleLang, setSelectedSubtitleLang] = useState<string | 'off'>('off'); // Default to 'off'
+
 
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const nextUpTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -108,7 +113,7 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
                videoElement.audioTracks[0].enabled = true;
            }
        }
-       
+
        setAvailableAudioTracks(tracks);
        setSelectedAudioTrackId(enabledTrackId);
      } else {
@@ -117,6 +122,42 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
         setSelectedAudioTrackId(video.audioTracks && video.audioTracks.length > 0 ? video.audioTracks[0].id : undefined);
      }
   }, [video.audioTracks]); // Depend on simulated data from props
+
+
+  // Function to update subtitle track state based on video element and props
+  const updateSubtitleTracks = useCallback(() => {
+    const videoElement = videoRef.current;
+    const simulatedSubs = video.subtitleTracks || [];
+    // If the browser supports TextTrackList, use it as the source of truth
+    if (videoElement && videoElement.textTracks) {
+        const browserTracks: SubtitleTrackInfo[] = [];
+        let activeLang: string | 'off' = 'off';
+        for (let i = 0; i < videoElement.textTracks.length; i++) {
+            const track = videoElement.textTracks[i];
+            // Only consider subtitle/caption tracks
+            if (track.kind === 'subtitles' || track.kind === 'captions') {
+                browserTracks.push({
+                    srclang: track.language || 'unknown',
+                    label: track.label || `Subtitle ${i + 1}${track.language ? ` (${track.language})` : ''}`,
+                    src: (track as any).src || '', // src isn't standard on TextTrack but might exist
+                });
+                if (track.mode === 'showing') {
+                    activeLang = track.language || 'unknown';
+                }
+            }
+        }
+        setAvailableSubtitleTracks(browserTracks);
+        setSelectedSubtitleLang(activeLang);
+    } else {
+        // Fallback to simulated data from props
+        setAvailableSubtitleTracks(simulatedSubs);
+        // Determine default selection from simulated data
+        const defaultSub = simulatedSubs.find(sub => sub.isDefault);
+        setSelectedSubtitleLang(defaultSub ? defaultSub.srclang : 'off');
+    }
+
+  }, [video.subtitleTracks]);
+
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -131,6 +172,7 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     const handleLoadedMetadata = () => {
         setDuration(videoElement.duration);
         updateAudioTracks(); // Update tracks when metadata is loaded
+        updateSubtitleTracks(); // Update subtitles as well
     };
     const handleVolumeChange = () => {
       setVolume(videoElement.volume);
@@ -144,11 +186,14 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
         resetControlsTimeout(); // Ensure controls (and next up) are visible
       }
     };
-    
+
     // Listener for changes in the audio track list or enabled status
     const handleAudioTrackChange = () => {
-        // console.log("Audio tracks changed, updating state.");
         updateAudioTracks();
+    };
+    // Listener for changes in text tracks (subtitles)
+    const handleTextTrackChange = () => {
+        updateSubtitleTracks();
     };
 
 
@@ -158,12 +203,18 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
     videoElement.addEventListener('volumechange', handleVolumeChange);
     videoElement.addEventListener('ended', handleEnded);
-    
+
     // Add listeners for audio track changes
     if (videoElement.audioTracks) {
         videoElement.audioTracks.addEventListener('change', handleAudioTrackChange);
         videoElement.audioTracks.addEventListener('addtrack', handleAudioTrackChange);
         videoElement.audioTracks.addEventListener('removetrack', handleAudioTrackChange);
+    }
+    // Add listeners for text track changes
+    if (videoElement.textTracks) {
+        videoElement.textTracks.addEventListener('change', handleTextTrackChange);
+        videoElement.textTracks.addEventListener('addtrack', handleTextTrackChange);
+        videoElement.textTracks.addEventListener('removetrack', handleTextTrackChange);
     }
 
 
@@ -176,6 +227,7 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     setVolume(videoElement.volume);
     setIsMuted(videoElement.muted);
     updateAudioTracks(); // Initial check for audio tracks
+    updateSubtitleTracks(); // Initial check for subtitles
     resetControlsTimeout();
 
     return () => {
@@ -185,12 +237,18 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
       videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
       videoElement.removeEventListener('volumechange', handleVolumeChange);
       videoElement.removeEventListener('ended', handleEnded);
-      
+
       // Remove audio track listeners
       if (videoElement.audioTracks) {
         videoElement.audioTracks.removeEventListener('change', handleAudioTrackChange);
         videoElement.audioTracks.removeEventListener('addtrack', handleAudioTrackChange);
         videoElement.audioTracks.removeEventListener('removetrack', handleAudioTrackChange);
+      }
+       // Remove text track listeners
+      if (videoElement.textTracks) {
+          videoElement.textTracks.removeEventListener('change', handleTextTrackChange);
+          videoElement.textTracks.removeEventListener('addtrack', handleTextTrackChange);
+          videoElement.textTracks.removeEventListener('removetrack', handleTextTrackChange);
       }
 
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
@@ -198,7 +256,7 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
       if (nextUpIntervalRef.current) clearInterval(nextUpIntervalRef.current);
     };
     // Add updateAudioTracks to dependency array to re-run if the function identity changes (though unlikely with useCallback)
-  }, [video, autoplay, resetControlsTimeout, nextEpisode, updateAudioTracks]); 
+  }, [video, autoplay, resetControlsTimeout, nextEpisode, updateAudioTracks, updateSubtitleTracks]);
 
   // Effect for Next Up Countdown
   useEffect(() => {
@@ -346,6 +404,48 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     }
 }, [resetControlsTimeout]);
 
+  const handleSelectSubtitle = useCallback((lang: string | 'off') => {
+    const videoElement = videoRef.current;
+    if (videoElement && videoElement.textTracks) {
+      let found = false;
+      for (let i = 0; i < videoElement.textTracks.length; i++) {
+        const track = videoElement.textTracks[i];
+        if (track.kind === 'subtitles' || track.kind === 'captions') {
+          const trackLang = track.language || 'unknown'; // Use 'unknown' if language is missing
+          if (lang === 'off') {
+            track.mode = 'disabled';
+            found = true; // Consider 'off' as found
+          } else if (trackLang === lang || (lang !== 'unknown' && !track.language && i === 0)) { // Match language or select first track if lang matches 'unknown' and track has no lang
+             track.mode = 'showing';
+             found = true;
+          } else {
+            track.mode = 'disabled';
+          }
+        }
+      }
+       // Ensure the state reflects the change, even if no track was perfectly matched (e.g., for 'off')
+       setSelectedSubtitleLang(lang);
+
+      if (!found && lang !== 'off') {
+          console.warn(`Subtitle track for language "${lang}" not found.`);
+          // If no track was found for the desired language, explicitly turn all off
+          for (let i = 0; i < videoElement.textTracks.length; i++) {
+              if (videoElement.textTracks[i].kind === 'subtitles' || videoElement.textTracks[i].kind === 'captions') {
+                   videoElement.textTracks[i].mode = 'disabled';
+              }
+          }
+          setSelectedSubtitleLang('off'); // Update state to 'off' if the selection failed
+      }
+
+      resetControlsTimeout();
+    } else {
+      console.warn("Text tracks API not available.");
+       // Still update the state optimistically for simulated tracks
+      setSelectedSubtitleLang(lang);
+      resetControlsTimeout();
+    }
+  }, [resetControlsTimeout]);
+
 
   return (
     <div
@@ -363,15 +463,27 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
         preload="metadata"
         onClick={(e) => e.stopPropagation()} // Prevent click on video itself from bubbling to container if controls are visible
       >
-        {video.subtitleSrc && (
+        {/* Render subtitle tracks from the Video object */}
+         {(video.subtitleTracks || []).map((sub) => (
           <track
-            label="English"
+            key={sub.srclang}
+            label={sub.label}
             kind="subtitles"
-            srcLang="en"
-            src={video.subtitleSrc}
-            default
+            srcLang={sub.srclang}
+            src={sub.src}
+            default={selectedSubtitleLang === sub.srclang}
           />
-        )}
+        ))}
+         {/* Fallback for single subtitleSrc if subtitleTracks is not present */}
+         {!video.subtitleTracks && video.subtitleSrc && (
+            <track
+              label="English" // Default label if only src is provided
+              kind="subtitles"
+              srcLang="en" // Default lang if only src is provided
+              src={video.subtitleSrc}
+              default={selectedSubtitleLang === 'en'}
+            />
+         )}
         Your browser does not support the video tag.
       </video>
       <VideoPlayerControls
@@ -389,6 +501,8 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
         episodesInCurrentSeason={episodesInCurrentSeason}
         availableAudioTracks={availableAudioTracks}
         selectedAudioTrackId={selectedAudioTrackId}
+        availableSubtitleTracks={availableSubtitleTracks} // Pass subtitle info
+        selectedSubtitleLang={selectedSubtitleLang} // Pass subtitle info
         onTogglePlay={handleTogglePlay}
         onSeek={handleSeek}
         onVolumeChange={handleVolumeChange}
@@ -398,6 +512,7 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
         onPlayPrev={handlePlayPrev}
         onSkipIntro={handleSkipIntro}
         onSelectAudioTrack={handleSelectAudioTrack}
+        onSelectSubtitle={handleSelectSubtitle} // Pass subtitle handler
         isNextUpActive={isNextUpActive}
         nextUpCountdown={nextUpCountdown}
         onCancelNextUp={handleCancelNextUp}

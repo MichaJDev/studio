@@ -11,19 +11,18 @@ import {
   Minimize,
   SkipForward,
   SkipBack,
-  ChevronDown,
-  ChevronUp,
   Settings2,
-  AudioLines, // Icon for audio settings
+  AudioLines,
+  List,
+  Captions, // Icon for subtitles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import type { Video, AudioTrackInfo } from '@/types'; // Import AudioTrackInfo
+import type { Video, AudioTrackInfo, SubtitleTrackInfo } from '@/types'; // Import SubtitleTrackInfo
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useVideoContext } from '@/contexts/VideoContext';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 
 
@@ -40,8 +39,10 @@ interface VideoPlayerControlsProps {
   prevEpisode?: Video;
   currentEpisodeIndexInSeason: number;
   episodesInCurrentSeason: Video[];
-  availableAudioTracks: AudioTrackInfo[]; // New prop
-  selectedAudioTrackId?: string; // New prop
+  availableAudioTracks: AudioTrackInfo[];
+  selectedAudioTrackId?: string;
+  availableSubtitleTracks: SubtitleTrackInfo[]; // New prop
+  selectedSubtitleLang: string | 'off'; // New prop
   onTogglePlay: () => void;
   onSeek: (time: number) => void;
   onVolumeChange: (volume: number) => void;
@@ -50,7 +51,8 @@ interface VideoPlayerControlsProps {
   onPlayNext: () => void;
   onPlayPrev: () => void;
   onSkipIntro: () => void;
-  onSelectAudioTrack: (trackId: string) => void; // New prop
+  onSelectAudioTrack: (trackId: string) => void;
+  onSelectSubtitle: (lang: string | 'off') => void; // New prop
   isNextUpActive: boolean;
   nextUpCountdown: number;
   onCancelNextUp: () => void;
@@ -83,8 +85,10 @@ export default function VideoPlayerControls({
   prevEpisode,
   currentEpisodeIndexInSeason,
   episodesInCurrentSeason,
-  availableAudioTracks, // Destructure new prop
-  selectedAudioTrackId, // Destructure new prop
+  availableAudioTracks,
+  selectedAudioTrackId,
+  availableSubtitleTracks, // Destructure new prop
+  selectedSubtitleLang, // Destructure new prop
   onTogglePlay,
   onSeek,
   onVolumeChange,
@@ -93,7 +97,8 @@ export default function VideoPlayerControls({
   onPlayNext,
   onPlayPrev,
   onSkipIntro,
-  onSelectAudioTrack, // Destructure new prop
+  onSelectAudioTrack,
+  onSelectSubtitle, // Destructure new prop
   isNextUpActive,
   nextUpCountdown,
   onCancelNextUp,
@@ -102,16 +107,16 @@ export default function VideoPlayerControls({
   onSelectEpisode,
 }: VideoPlayerControlsProps) {
 
-  const { getSeasonsForShow } = useVideoContext();
-  const seasons = videoData.type === 'show' && videoData.showName ? getSeasonsForShow(videoData.showName) : [];
-
   const showSkipIntro =
     videoData.type === 'show' &&
     videoData.introEndTimeInSeconds &&
     currentTime > 5 && // Show after 5s
     currentTime < videoData.introEndTimeInSeconds;
 
-  const hasSettings = (videoData.type === 'show' && episodesInCurrentSeason.length > 0) || availableAudioTracks.length > 1;
+  const hasEpisodes = videoData.type === 'show' && episodesInCurrentSeason.length > 0;
+  const hasAudioOptions = availableAudioTracks.length > 1;
+  // Ensure subtitle tracks exist and have at least one actual track (more than just "Off")
+  const hasSubtitleOptions = availableSubtitleTracks.length > 0;
 
 
   if (!isShowingControls && !isNextUpActive && !showSkipIntro) {
@@ -151,10 +156,6 @@ export default function VideoPlayerControls({
                     S{String(nextEpisode.season).padStart(2, '0')}E{String(nextEpisode.episode).padStart(2, '0')}: {nextEpisode.episodeTitle || nextEpisode.title}
                     </p>
                 )}
-                {/* Thumbnail can be added here if desired */}
-                 {/* <div className="relative w-40 h-24 mx-auto mb-4 rounded overflow-hidden shadow-lg">
-                   <Image src={nextEpisode.thumbnailUrl} alt={`Thumbnail for ${nextEpisode.title}`} fill className="object-cover" />
-                 </div> */}
                 <p className="text-4xl font-semibold mb-5">{nextUpCountdown}s</p>
                 <div className="flex gap-4 justify-center">
                     <Button variant="outline" onClick={onCancelNextUp} className="bg-transparent text-white border-white/50 hover:bg-white/10">Cancel</Button>
@@ -213,69 +214,91 @@ export default function VideoPlayerControls({
           </div>
 
           {/* Right Controls */}
-          <div className="flex items-center gap-2">
-             {/* Settings Popover */}
-             {hasSettings && (
+          <div className="flex items-center gap-1">
+             {/* Episodes Popover (Shows Only) */}
+             {hasEpisodes && (
                 <Popover>
                     <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-white/10">
-                        <Settings2 className="h-5 w-5" /> <span className="sr-only">Settings</span>
-                    </Button>
+                        <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-white/10">
+                            <List className="h-5 w-5" /> <span className="sr-only">Episodes</span>
+                        </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-80 bg-background/90 backdrop-blur-sm border-border text-foreground p-0" side="top" align="end">
-                     <ScrollArea className="max-h-[70vh]"> {/* Limit height */}
-                         {/* Audio Track Selection */}
-                         {availableAudioTracks.length > 1 && (
-                           <div className="p-4 border-b border-border">
-                             <Label className="text-sm font-medium text-muted-foreground flex items-center mb-2">
-                               <AudioLines className="h-4 w-4 mr-2"/> Audio Language
-                             </Label>
-                             <Select value={selectedAudioTrackId} onValueChange={onSelectAudioTrack}>
-                               <SelectTrigger className="w-full bg-muted/50 border-border">
-                                 <SelectValue placeholder="Select audio track" />
-                               </SelectTrigger>
-                               <SelectContent>
-                                 {availableAudioTracks.map((track) => (
-                                   <SelectItem key={track.id} value={track.id}>
-                                     {track.label}
-                                   </SelectItem>
-                                 ))}
-                               </SelectContent>
-                             </Select>
-                           </div>
-                         )}
-
-                         {/* Episode List (for shows) */}
-                         {videoData.type === 'show' && episodesInCurrentSeason.length > 0 && (
-                           <>
-                             <div className="p-4 border-b border-border">
+                        <ScrollArea className="max-h-[70vh]">
+                            <div className="p-4 border-b border-border">
                                 <h4 className="font-medium leading-none">{videoData.showName}</h4>
                                 <p className="text-sm text-muted-foreground">
                                     Season {String(videoData.season).padStart(2, '0')}
                                 </p>
-                             </div>
-                             <div className="p-2"> {/* Removed max-h here, handled by ScrollArea */}
+                            </div>
+                            <div className="p-2">
                                 {episodesInCurrentSeason.map((ep) => (
                                     <Button
                                         key={ep.id}
                                         variant={ep.id === videoData.id ? "secondary" : "ghost"}
                                         className={`w-full justify-start text-left h-auto py-2 px-3 mb-1 ${ep.id === videoData.id ? 'font-semibold': ''}`}
                                         onClick={() => onSelectEpisode(ep.id)}
-                                        title={`${ep.episodeTitle || ep.title}`} // Tooltip for long titles
+                                        title={`${ep.episodeTitle || ep.title}`}
                                     >
                                         <span className="mr-2 text-xs text-muted-foreground w-6 text-right">E{String(ep.episode).padStart(2, '0')}</span>
                                         <span className="truncate flex-1">{ep.episodeTitle || ep.title}</span>
                                         {ep.id === videoData.id && <Play className="h-4 w-4 ml-auto text-primary"/>}
                                     </Button>
                                 ))}
-                             </div>
-                           </>
-                         )}
-                      </ScrollArea>
+                            </div>
+                        </ScrollArea>
                     </PopoverContent>
                 </Popover>
              )}
 
+             {/* Subtitles Popover */}
+              {hasSubtitleOptions && (
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-white/10">
+                            <Captions className="h-5 w-5" /> <span className="sr-only">Subtitles</span>
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-60 bg-background/90 backdrop-blur-sm border-border text-foreground p-2" side="top" align="end">
+                        <RadioGroup value={selectedSubtitleLang} onValueChange={onSelectSubtitle}>
+                            <div className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer">
+                                <RadioGroupItem value="off" id="sub-off" className="border-primary text-primary ring-offset-background"/>
+                                <Label htmlFor="sub-off" className="font-normal cursor-pointer">Off</Label>
+                            </div>
+                            {availableSubtitleTracks.map((sub) => (
+                                <div key={sub.srclang} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer">
+                                    <RadioGroupItem value={sub.srclang} id={`sub-${sub.srclang}`} className="border-primary text-primary ring-offset-background"/>
+                                    <Label htmlFor={`sub-${sub.srclang}`} className="font-normal cursor-pointer">{sub.label}</Label>
+                                </div>
+                            ))}
+                        </RadioGroup>
+                    </PopoverContent>
+                </Popover>
+              )}
+
+
+             {/* Audio Popover (Only if options exist) */}
+             {hasAudioOptions && (
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-white hover:text-white hover:bg-white/10">
+                            <AudioLines className="h-5 w-5" /> <span className="sr-only">Audio</span>
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-60 bg-background/90 backdrop-blur-sm border-border text-foreground p-2" side="top" align="end">
+                        <RadioGroup value={selectedAudioTrackId} onValueChange={onSelectAudioTrack}>
+                            {availableAudioTracks.map((track) => (
+                                <div key={track.id} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer">
+                                    <RadioGroupItem value={track.id} id={`audio-${track.id}`} className="border-primary text-primary ring-offset-background"/>
+                                    <Label htmlFor={`audio-${track.id}`} className="font-normal cursor-pointer">{track.label}</Label>
+                                </div>
+                            ))}
+                        </RadioGroup>
+                    </PopoverContent>
+                </Popover>
+             )}
+
+            {/* Keep Fullscreen Button */}
             <Button variant="ghost" size="icon" onClick={onToggleFullscreen} className="text-white hover:text-white hover:bg-white/10">
               {isFullscreen ? <Minimize className="h-6 w-6" /> : <Maximize className="h-6 w-6" />}
             </Button>
