@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { User, InviteCodeConfig, InviteRequest } from '@/types';
+import type { User, InviteCodeConfig, InviteRequest, WatchProgressItem } from '@/types'; // Import WatchProgressItem
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import useLocalStorage from '@/hooks/use-local-storage';
 import { useRouter } from 'next/navigation';
@@ -25,6 +25,7 @@ interface AuthContextType {
   logout: () => void;
   register: (name: string, email_provided: string, password_provided: string, inviteCode: string) => Promise<{ success: boolean; error?: string }>;
   updateUser: (userId: string, updatedFields: Partial<User>) => void;
+  updateWatchProgress: (videoId: string, progress: number) => void; // Add function to update progress
   createInviteCode: (code: string, description: string, maxUses: number) => Promise<{ success: boolean; error?: string }>;
   toggleInviteCodeStatus: (code: string) => void;
   createInviteRequest: (email: string, reason: string) => Promise<{ success: boolean; error?: string }>;
@@ -37,8 +38,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   // --- Use 'prismmtv' prefix for local storage keys ---
   const [users, setUsers] = useLocalStorage<User[]>('prismmtv-users', [
-     { id: 'admin-123', email: ADMIN_EMAIL, role: 'admin', name: 'Admin User', password: ADMIN_PASSWORD, inviteCodeUsed: 'ADMIN_DEFAULT_CODE', lastLogin: new Date(Date.now() - 86400000).toISOString(), lastWatchedVideoId: null },
-     { id: 'user-456', email: USER_EMAIL, role: 'user', name: 'Regular User', password: USER_PASSWORD, inviteCodeUsed: 'USER_WELCOME_CODE', lastLogin: new Date(Date.now() - 86400000 * 2).toISOString(), lastWatchedVideoId: 'movie-sim-1' },
+     { id: 'admin-123', email: ADMIN_EMAIL, role: 'admin', name: 'Admin User', password: ADMIN_PASSWORD, inviteCodeUsed: 'ADMIN_DEFAULT_CODE', lastLogin: new Date(Date.now() - 86400000).toISOString(), watchProgress: {} }, // Add watchProgress
+     { id: 'user-456', email: USER_EMAIL, role: 'user', name: 'Regular User', password: USER_PASSWORD, inviteCodeUsed: 'USER_WELCOME_CODE', lastLogin: new Date(Date.now() - 86400000 * 2).toISOString(), watchProgress: { 'movie-sim-1': { progress: 1200, lastWatched: new Date(Date.now() - 86400000).toISOString() } } }, // Add watchProgress with example
   ]);
   const [currentUser, setCurrentUser] = useLocalStorage<User | null>('prismmtv-current-user', null);
   const [inviteCodes, setInviteCodes] = useLocalStorage<InviteCodeConfig[]>('prismmtv-invite-codes', [
@@ -140,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: name,
         inviteCodeUsed: inviteCodeValue,
         lastLogin: undefined,
-        lastWatchedVideoId: null,
+        watchProgress: {}, // Initialize watchProgress
     };
 
     setUsers([...users, newUser]); // Uses hook writing to 'prismmtv-users'
@@ -163,12 +164,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const updatedUser = { ...updatedUsers[userIndex], ...updatedFields };
         updatedUsers[userIndex] = updatedUser;
 
+        // Ensure currentUser state is also updated if the current user was modified
         if (currentUser && currentUser.id === userId) {
             setCurrentUser(updatedUser); // Uses hook writing to 'prismmtv-current-user'
         }
         return updatedUsers;
     });
   };
+
+   // Function to specifically update watch progress for the current user
+   const updateWatchProgress = (videoId: string, progress: number) => {
+     if (!currentUser) return;
+
+     const now = new Date().toISOString();
+     const newProgress: WatchProgressItem = { progress, lastWatched: now };
+
+     // Create the updated user object
+     const updatedUser: User = {
+       ...currentUser,
+       watchProgress: {
+         ...(currentUser.watchProgress || {}), // Ensure watchProgress exists
+         [videoId]: newProgress,
+       },
+     };
+
+     // Update the currentUser state (which also updates localStorage via the hook)
+     setCurrentUser(updatedUser);
+
+     // Also update the user within the main users array (which updates localStorage via the hook)
+     setUsers(prevUsers =>
+       prevUsers.map(u => (u.id === currentUser.id ? updatedUser : u))
+     );
+   };
+
 
   const createInviteCode = async (code: string, description: string, maxUses: number): Promise<{ success: boolean; error?: string }> => {
     if (inviteCodes.some(ic => ic.code === code)) {
@@ -247,6 +275,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logout,
       register,
       updateUser,
+      updateWatchProgress, // Include the new function in the context value
       createInviteCode,
       toggleInviteCodeStatus,
       createInviteRequest,

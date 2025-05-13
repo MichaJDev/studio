@@ -4,9 +4,9 @@
 import { useMemo, useState } from 'react';
 import { useVideoContext } from '@/contexts/VideoContext';
 import { useAuthContext } from '@/contexts/AuthContext'; // Import Auth context
-import type { Video } from '@/types';
+import type { Video, WatchProgressItem } from '@/types'; // Import WatchProgressItem
 import Link from 'next/link';
-import { Film, Tv, Search, Loader2, LogIn, UserPlus, Diamond, Send } from 'lucide-react'; // Import Send
+import { Film, Tv, Search, Loader2, LogIn, UserPlus, Diamond, Send, History } from 'lucide-react'; // Import Send & History
 import { Button } from '@/components/ui/button';
 import VideoCard from '@/components/video/VideoCard';
 import FeaturedVideoCarouselItem from '@/components/video/FeaturedVideoCarouselItem';
@@ -59,12 +59,40 @@ function LandingPage() {
   );
 }
 
-// Dashboard component (existing content)
+// Dashboard component (existing content + Continue Watching)
 function Dashboard() {
   const { videos, getRecentVideos } = useVideoContext();
+  const { currentUser } = useAuthContext(); // Get current user for progress
   const [selectedVideoForModal, setSelectedVideoForModal] = useState<Video | null>(null);
 
   const recentVideos = getRecentVideos(5);
+
+  const continueWatchingVideos = useMemo(() => {
+    if (!currentUser?.watchProgress) return [];
+
+    const progressMap = currentUser.watchProgress;
+    const videoMap = new Map(videos.map(v => [v.id, v]));
+    const partiallyWatched: (Video & { progressData: WatchProgressItem })[] = [];
+
+    const WATCH_THRESHOLD_SECONDS = 10; // Min seconds watched to show
+    const FINISHED_BUFFER_SECONDS = 30; // Seconds from end to consider finished
+
+    Object.entries(progressMap).forEach(([videoId, progressData]) => {
+      const video = videoMap.get(videoId);
+      if (video?.durationInSeconds &&
+          progressData.progress > WATCH_THRESHOLD_SECONDS &&
+          progressData.progress < video.durationInSeconds - FINISHED_BUFFER_SECONDS) {
+        partiallyWatched.push({ ...video, progressData });
+      }
+    });
+
+    // Sort by most recently watched
+    partiallyWatched.sort((a, b) => new Date(b.progressData.lastWatched).getTime() - new Date(a.progressData.lastWatched).getTime());
+
+    return partiallyWatched;
+  }, [currentUser, videos]);
+
+
   const movies = videos.filter(v => v.type === 'movie' || (v.type === 'upload' && !v.season));
   const uniqueShows = useMemo(() => {
     const showsMap = new Map<string, Video>();
@@ -85,7 +113,7 @@ function Dashboard() {
 
   const handleOpenModal = (video: Video) => setSelectedVideoForModal(video);
   const handleCloseModal = () => setSelectedVideoForModal(null);
-  const hasContent = recentVideos.length > 0 || movies.length > 0 || uniqueShows.length > 0;
+  const hasContent = recentVideos.length > 0 || movies.length > 0 || uniqueShows.length > 0 || continueWatchingVideos.length > 0;
 
   return (
     <div className="space-y-12">
@@ -117,8 +145,31 @@ function Dashboard() {
 
       <div className={cn(
         "container max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8",
-        recentVideos.length > 0 ? "pt-12" : "pt-0"
+        recentVideos.length > 0 ? "pt-12" : "pt-0",
+        "space-y-12" // Add space between sections
       )}>
+
+        {/* --- Continue Watching Section --- */}
+         {continueWatchingVideos.length > 0 && (
+          <section>
+            <h2 className="text-2xl font-bold tracking-tight mb-4 text-foreground flex items-center">
+              <History className="mr-3 h-6 w-6 text-primary" /> Continue Watching
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+              {continueWatchingVideos.map((video) => (
+                <VideoCard
+                    key={video.id}
+                    video={video}
+                    onCardClick={handleOpenModal}
+                    progress={video.progressData.progress}
+                    duration={video.durationInSeconds}
+                 />
+              ))}
+            </div>
+          </section>
+         )}
+        {/* --- End Continue Watching Section --- */}
+
         {movies.length > 0 && (
           <section>
             <h2 className="text-2xl font-bold tracking-tight mb-4 text-foreground flex items-center">
@@ -153,6 +204,12 @@ function Dashboard() {
               It looks like there are no videos here yet.
               Please ensure the media scanner has run or check your media directories.
             </p>
+             {/* Add button for admins to scan media if library is empty */}
+            {currentUser?.role === 'admin' && (
+              <p className="text-sm text-muted-foreground">
+                You can try rescanning media files from the Admin Panel (accessible via user menu).
+              </p>
+            )}
           </div>
         )}
       </div>

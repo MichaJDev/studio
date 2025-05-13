@@ -43,6 +43,11 @@ export interface Video {
   audioTracks?: AudioTrackInfo[]; // Array of available audio tracks
 }
 
+export interface WatchProgressItem {
+  progress: number; // Current time in seconds
+  lastWatched: string; // ISO timestamp of the last update for sorting
+}
+
 export interface User {
   id: string;
   email: string;
@@ -51,7 +56,8 @@ export interface User {
   password?: string; // **INSECURE**: Only for local storage demo. Do NOT store plain text passwords in real applications.
   inviteCodeUsed?: string; // Store the actual invite code string used for registration
   lastLogin?: string; // ISO timestamp of last login
-  lastWatchedVideoId?: string | null; // ID of the last video watched
+  lastWatchedVideoId?: string | null; // DEPRECATED - kept temporarily for compatibility, use watchProgress instead
+  watchProgress?: { [videoId: string]: WatchProgressItem }; // Stores progress for multiple videos
 }
 
 export interface InviteCodeConfig {

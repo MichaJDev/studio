@@ -3,6 +3,7 @@
 
 import type { Video, AudioTrackInfo, SubtitleTrackInfo } from '@/types';
 import { useVideoContext } from '@/contexts/VideoContext';
+import { useAuthContext } from '@/contexts/AuthContext'; // Import AuthContext
 import { useRouter } from 'next/navigation';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import VideoPlayerControls from './VideoPlayerControls';
@@ -17,6 +18,7 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { getEpisodesForShowAndSeason, getSeasonsForShow } = useVideoContext();
+  const { updateWatchProgress } = useAuthContext(); // Get progress update function
 
   const [isPlaying, setIsPlaying] = useState(autoplay);
   const [currentTime, setCurrentTime] = useState(0);
@@ -40,6 +42,7 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const nextUpTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const nextUpIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastProgressUpdateRef = useRef<number>(0); // Ref to track last progress update time
 
   const episodesInCurrentSeason = useMemo(() => {
     if (video.type === 'show' && video.showName && video.season !== undefined) {
@@ -167,8 +170,28 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     const handlePause = () => {
       setIsPlaying(false);
       resetControlsTimeout(); // Keep controls visible when paused
+      // Save progress immediately on pause
+       updateWatchProgress(video.id, videoElement.currentTime);
+       lastProgressUpdateRef.current = Date.now(); // Reset timer on pause
     };
-    const handleTimeUpdate = () => setCurrentTime(videoElement.currentTime);
+
+    // --- Throttled Time Update for Progress Saving ---
+    const handleTimeUpdate = () => {
+      const now = Date.now();
+      const currentT = videoElement.currentTime;
+      setCurrentTime(currentT);
+
+      // Throttle progress updates to every 5 seconds
+      if (now - lastProgressUpdateRef.current > 5000) {
+         // Only update if progress is meaningful (e.g., > 0)
+         if (currentT > 0) {
+           updateWatchProgress(video.id, currentT);
+           lastProgressUpdateRef.current = now;
+         }
+      }
+    };
+     // --- End Throttled Time Update ---
+
     const handleLoadedMetadata = () => {
         setDuration(videoElement.duration);
         updateAudioTracks(); // Update tracks when metadata is loaded
@@ -180,6 +203,8 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     };
     const handleEnded = () => {
       setIsPlaying(false);
+      // Mark as finished (or near finished) by setting progress close to duration
+      updateWatchProgress(video.id, videoElement.duration - 1); // Save slightly less than duration
       if (nextEpisode && video.type === 'show') {
         setIsNextUpActive(true);
         setNextUpCountdown(10); // Reset countdown
@@ -230,7 +255,16 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     updateSubtitleTracks(); // Initial check for subtitles
     resetControlsTimeout();
 
+    // Save progress when component unmounts (e.g., user navigates away)
+    const saveProgressOnUnmount = () => {
+        if (videoElement && videoElement.currentTime > 0) {
+            updateWatchProgress(video.id, videoElement.currentTime);
+        }
+    };
+
     return () => {
+      saveProgressOnUnmount(); // Save progress on cleanup
+
       videoElement.removeEventListener('play', handlePlay);
       videoElement.removeEventListener('pause', handlePause);
       videoElement.removeEventListener('timeupdate', handleTimeUpdate);
@@ -255,8 +289,8 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
       if (nextUpTimeoutRef.current) clearTimeout(nextUpTimeoutRef.current);
       if (nextUpIntervalRef.current) clearInterval(nextUpIntervalRef.current);
     };
-    // Add updateAudioTracks to dependency array to re-run if the function identity changes (though unlikely with useCallback)
-  }, [video, autoplay, resetControlsTimeout, nextEpisode, updateAudioTracks, updateSubtitleTracks]);
+    // Add updateWatchProgress to dependency array
+  }, [video, autoplay, resetControlsTimeout, nextEpisode, updateAudioTracks, updateSubtitleTracks, updateWatchProgress]);
 
   // Effect for Next Up Countdown
   useEffect(() => {
@@ -287,7 +321,7 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
       if (videoRef.current.paused) {
         videoRef.current.play();
       } else {
-        videoRef.current.pause();
+        videoRef.current.pause(); // Pause will trigger progress save in effect cleanup/handler
       }
       resetControlsTimeout();
     }
@@ -297,9 +331,11 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
     if (videoRef.current) {
       videoRef.current.currentTime = time;
       setCurrentTime(time); // Eager update
+      updateWatchProgress(video.id, time); // Update progress immediately on seek
+      lastProgressUpdateRef.current = Date.now(); // Reset throttle timer on seek
       resetControlsTimeout();
     }
-  }, [resetControlsTimeout]);
+  }, [resetControlsTimeout, video.id, updateWatchProgress]);
 
   const handleVolumeChange = useCallback((newVolume: number) => {
     if (videoRef.current) {
@@ -339,22 +375,32 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
 
   const handlePlayNext = useCallback(() => {
     if (nextEpisode) {
+      // Save progress of current video before navigating
+      if (videoRef.current) {
+        updateWatchProgress(video.id, videoRef.current.currentTime);
+      }
       router.push(`/watch/${nextEpisode.id}`);
     }
-  }, [nextEpisode, router]);
+  }, [nextEpisode, router, video.id, updateWatchProgress]);
 
   const handlePlayPrev = useCallback(() => {
     if (prevEpisode) {
+       // Save progress of current video before navigating
+      if (videoRef.current) {
+         updateWatchProgress(video.id, videoRef.current.currentTime);
+      }
       router.push(`/watch/${prevEpisode.id}`);
     }
-  }, [prevEpisode, router]);
+  }, [prevEpisode, router, video.id, updateWatchProgress]);
 
   const handleSkipIntro = useCallback(() => {
     if (videoRef.current && video.introEndTimeInSeconds) {
       videoRef.current.currentTime = video.introEndTimeInSeconds;
+       updateWatchProgress(video.id, video.introEndTimeInSeconds); // Save progress after skip
+      lastProgressUpdateRef.current = Date.now(); // Reset throttle timer
       resetControlsTimeout();
     }
-  }, [video.introEndTimeInSeconds, resetControlsTimeout]);
+  }, [video.id, video.introEndTimeInSeconds, resetControlsTimeout, updateWatchProgress]);
 
   const handleMouseMove = useCallback(() => {
     resetControlsTimeout();
@@ -376,6 +422,10 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
 
 
   const handleSelectEpisode = (episodeId: string) => {
+     // Save progress of current video before navigating
+    if (videoRef.current) {
+       updateWatchProgress(video.id, videoRef.current.currentTime);
+    }
     router.push(`/watch/${episodeId}`);
   };
 
@@ -450,7 +500,7 @@ export default function VideoPlayer({ video, autoplay = true }: VideoPlayerProps
   return (
     <div
       ref={playerContainerRef}
-      className="relative w-full h-full aspect-video bg-black overflow-hidden"
+      className="relative w-full h-full aspect-video bg-black overflow-hidden group/player" // Added group/player
       onMouseMove={handleMouseMove}
       onClick={handleTogglePlay} // Allow clicking video to play/pause
     >
